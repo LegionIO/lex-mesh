@@ -24,9 +24,7 @@ module Legion
           end
 
           def send_message(from:, to: nil, capability: nil, pattern: :unicast, payload: {}, **)
-            unless Helpers::Topology.valid_pattern?(pattern)
-              return { error: :invalid_pattern }
-            end
+            return { error: :invalid_pattern } unless Helpers::Topology.valid_pattern?(pattern)
 
             msg = mesh_registry.route_message(from: from, to: to, capability: capability,
                                               pattern: pattern, payload: payload)

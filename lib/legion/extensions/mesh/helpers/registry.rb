@@ -15,12 +15,12 @@ module Legion
 
           def register_agent(agent_id, capabilities: [], endpoint: nil)
             @agents[agent_id] = {
-              agent_id:     agent_id,
-              capabilities: capabilities,
-              endpoint:     endpoint,
+              agent_id:      agent_id,
+              capabilities:  capabilities,
+              endpoint:      endpoint,
               registered_at: Time.now.utc,
-              last_seen:    Time.now.utc,
-              status:       :online
+              last_seen:     Time.now.utc,
+              status:        :online
             }
             capabilities.each { |cap| @capabilities[cap] << agent_id }
           end

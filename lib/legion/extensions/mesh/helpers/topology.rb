@@ -8,9 +8,9 @@ module Legion
           PROTOCOLS = %i[grpc websocket rest].freeze
           PATTERNS  = %i[unicast multicast broadcast].freeze
 
-          MESH_SILENCE_TIMEOUT    = 30   # seconds
+          MESH_SILENCE_TIMEOUT = 30 # seconds
           TRUST_CONSIDER_THRESHOLD = 0.3
-          MAX_HOPS                = 3
+          MAX_HOPS = 3
 
           module_function
 
