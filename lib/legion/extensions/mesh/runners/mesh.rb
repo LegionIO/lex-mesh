@@ -23,7 +23,7 @@ module Legion
             result ? { alive: true } : { error: :not_registered }
           end
 
-          def send_message(from:, to: nil, capability: nil, pattern: :unicast, payload: {}, **)
+          def send_message(from:, to: nil, capability: nil, pattern: :unicast, payload: {}, **) # rubocop:disable Metrics/ParameterLists
             return { error: :invalid_pattern } unless Helpers::Topology.valid_pattern?(pattern)
 
             msg = mesh_registry.route_message(from: from, to: to, capability: capability,
