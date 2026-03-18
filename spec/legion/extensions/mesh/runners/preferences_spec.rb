@@ -92,6 +92,57 @@ RSpec.describe Legion::Extensions::Mesh::Runners::Preferences do
     end
   end
 
+  describe '#dispatch_preference_message' do
+    context 'with preference_query type' do
+      it 'calls handle_preference_query and returns profile' do
+        result = runner.dispatch_preference_message(
+          type:                'preference_query',
+          requesting_agent_id: 'agent-1',
+          correlation_id:      'corr-123'
+        )
+        expect(result[:success]).to be true
+        expect(result[:profile]).to be_a(Hash)
+      end
+    end
+
+    context 'with preference_response type' do
+      it 'resolves a pending request' do
+        pending_req = runner.send(:pending_requests)
+        pending_req.register(correlation_id: 'corr-abc', callback: ->(_p) {})
+        result = runner.dispatch_preference_message(
+          type:           'preference_response',
+          correlation_id: 'corr-abc',
+          profile:        { verbosity: :concise }
+        )
+        expect(result[:resolved]).to be true
+      end
+
+      it 'returns false for unknown correlation_id' do
+        result = runner.dispatch_preference_message(
+          type:           'preference_response',
+          correlation_id: 'unknown',
+          profile:        {}
+        )
+        expect(result[:resolved]).to be false
+      end
+    end
+
+    context 'with unknown type' do
+      it 'returns error' do
+        result = runner.dispatch_preference_message(type: 'bogus')
+        expect(result[:success]).to be false
+        expect(result[:error]).to include('unknown')
+      end
+    end
+
+    context 'with nil type' do
+      it 'returns error' do
+        result = runner.dispatch_preference_message(type: nil)
+        expect(result[:success]).to be false
+      end
+    end
+  end
+
   describe '#expire_pending_requests' do
     it 'cleans up expired entries and returns count' do
       pending_req = runner.send(:pending_requests)

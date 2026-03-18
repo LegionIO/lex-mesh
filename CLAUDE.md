@@ -11,7 +11,7 @@ Agent-to-agent mesh communication layer for the LegionIO cognitive architecture.
 ## Gem Info
 
 - **Gem name**: `lex-mesh`
-- **Version**: `0.2.0`
+- **Version**: `0.2.1`
 - **Module**: `Legion::Extensions::Mesh`
 - **Ruby**: `>= 3.4`
 - **License**: MIT
@@ -28,11 +28,17 @@ lib/legion/extensions/mesh/
     pending_requests.rb    # Thread-safe (Mutex) tracker for async RPC by correlation_id with TTL
   runners/
     mesh.rb                # register, unregister, heartbeat, send_message, find_agents, mesh_status
-    preferences.rb         # query_preferences, handle_preference_query, handle_preference_response, expire_pending_requests
-  transport/               # AMQP message classes (loaded conditionally when Legion::Transport available)
+    preferences.rb         # query_preferences, handle_preference_query, handle_preference_response, dispatch_preference_message, expire_pending_requests
+  transport/               # AMQP transport classes (loaded conditionally when Legion::Transport available)
     messages/
-      preference_query.rb    # Publishes to agent exchange with agent.<target> routing key
-      preference_response.rb # Response routed back to requesting agent via reply_to
+      preference_query.rb    # Publishes to agent exchange with agent.<target>.preferences routing key
+      preference_response.rb # Response routed back via agent.<requester>.preferences
+    queues/
+      preference.rb          # Per-agent preference queue (agent.<id>.preferences, auto-delete)
+  actors/
+    heartbeat.rb             # Every 10s: broadcast_heartbeat
+    preference_listener.rb   # Subscription: dispatches preference_query/response from agent queue
+    pending_expiry.rb        # Every 30s: expire TTL-expired pending requests
 spec/
   legion/extensions/mesh/
     runners/
@@ -40,10 +46,16 @@ spec/
       preferences_spec.rb
     helpers/
       pending_requests_spec.rb
+    actors/
+      heartbeat_spec.rb
+      preference_listener_spec.rb
+      pending_expiry_spec.rb
     transport/
       messages/
         preference_query_spec.rb
         preference_response_spec.rb
+      queues/
+        preference_spec.rb
     client_spec.rb
 ```
 
@@ -104,7 +116,7 @@ Agent-to-agent preference query via AMQP RPC over the `agent` exchange (from `le
 
 **Transport**: Message classes are loaded conditionally (`if defined?(Legion::Transport)`) to allow standalone use without RabbitMQ.
 
-**Not yet built**: AMQP subscription actor to wire incoming messages on the agent queue to the runner methods.
+**Routing key separation**: Preference messages use `agent.<id>.preferences` routing key suffix, avoiding collision with GAIA's `agent.<id>` inbound queue on the same topic exchange.
 
 ## Integration Points
 

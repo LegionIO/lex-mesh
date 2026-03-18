@@ -41,7 +41,7 @@ RSpec.describe Legion::Extensions::Mesh::Transport::Messages::PreferenceResponse
 
   describe '#routing_key' do
     it 'routes to target agent' do
-      expect(msg.routing_key).to eq('agent.agent-1')
+      expect(msg.routing_key).to eq('agent.agent-1.preferences')
     end
   end
 

@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.2.1] - 2026-03-18
+
+### Added
+- `Actor::PreferenceListener` subscription actor wires AMQP messages to preference runner dispatch
+- `Actor::PendingExpiry` periodic actor (30s) cleans up TTL-expired pending requests
+- `Transport::Queues::Preference` per-agent preference queue (`agent.<id>.preferences`)
+- `Runners::Preferences#dispatch_preference_message` routes by message type to query/response handlers
+- Auto-reply: `dispatch_preference_message` publishes `PreferenceResponse` back to requester on query
+
+### Changed
+- Preference routing keys now use `agent.<id>.preferences` suffix to avoid collision with GAIA inbound queue
+- `reply_to` field uses `.preferences` suffix for correct response routing
+
 ## [0.2.0] - 2026-03-17
 
 ### Added

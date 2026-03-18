@@ -11,7 +11,7 @@ module Legion
             end
 
             def routing_key
-              "agent.#{@options[:target_agent_id]}"
+              "agent.#{@options[:target_agent_id]}.preferences"
             end
 
             def message
