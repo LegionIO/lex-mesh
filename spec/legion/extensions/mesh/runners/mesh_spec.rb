@@ -81,4 +81,13 @@ RSpec.describe Legion::Extensions::Mesh::Runners::Mesh do
       expect(status[:online]).to eq(1)
     end
   end
+
+  describe '#expire_silent_agents' do
+    it 'returns expired agent count' do
+      client.register(agent_id: 'a1')
+      result = client.expire_silent_agents
+      expect(result[:success]).to be true
+      expect(result[:count]).to eq(0)
+    end
+  end
 end

@@ -65,6 +65,18 @@ module Legion
             msg
           end
 
+          def expire_silent_agents(timeout: Topology::MESH_SILENCE_TIMEOUT)
+            cutoff = Time.now.utc - timeout
+            expired = []
+            @agents.each_value do |agent|
+              next unless agent[:status] == :online && agent[:last_seen] < cutoff
+
+              agent[:status] = :offline
+              expired << agent[:agent_id]
+            end
+            expired
+          end
+
           def online_agents
             @agents.values.select { |a| a[:status] == :online }
           end

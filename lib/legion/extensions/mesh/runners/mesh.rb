@@ -56,6 +56,14 @@ module Legion
             { total: total, online: online.size, message_count: msgs }
           end
 
+          def expire_silent_agents(**)
+            expired = mesh_registry.expire_silent_agents
+            expired.each do |agent_id|
+              Legion::Logging.info "[mesh] expired silent agent: #{agent_id}"
+            end
+            { success: true, expired: expired, count: expired.size }
+          end
+
           private
 
           def publish_mesh_departure(agent_id:, capabilities:)

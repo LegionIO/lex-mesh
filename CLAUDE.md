@@ -11,7 +11,7 @@ Agent-to-agent mesh communication layer for the LegionIO cognitive architecture.
 ## Gem Info
 
 - **Gem name**: `lex-mesh`
-- **Version**: `0.2.2`
+- **Version**: `0.2.3`
 - **Module**: `Legion::Extensions::Mesh`
 - **Ruby**: `>= 3.4`
 - **License**: MIT
@@ -27,7 +27,7 @@ lib/legion/extensions/mesh/
     preference_profile.rb  # PreferenceProfile - resolve, store, clear, preference_instructions
     pending_requests.rb    # Thread-safe (Mutex) tracker for async RPC by correlation_id with TTL
   runners/
-    mesh.rb                # register, unregister (+ departure signal), heartbeat, send_message, find_agents, mesh_status
+    mesh.rb                # register, unregister (+ departure signal), heartbeat, send_message, find_agents, mesh_status, expire_silent_agents
     preferences.rb         # query_preferences, handle_preference_query, handle_preference_response, dispatch_preference_message, expire_pending_requests
   transport/               # AMQP transport classes (loaded conditionally when Legion::Transport available)
     messages/
@@ -38,6 +38,7 @@ lib/legion/extensions/mesh/
       preference.rb          # Per-agent preference queue (agent.<id>.preferences, auto-delete)
   actors/
     heartbeat.rb             # Every 10s: broadcast_heartbeat
+    silence_watchdog.rb      # Every 15s: expire_silent_agents (marks offline when last_seen > MESH_SILENCE_TIMEOUT)
     preference_listener.rb   # Subscription: dispatches preference_query/response from agent queue
     pending_expiry.rb        # Every 30s: expire TTL-expired pending requests
 spec/
@@ -49,6 +50,7 @@ spec/
       pending_requests_spec.rb
     actors/
       heartbeat_spec.rb
+      silence_watchdog_spec.rb
       preference_listener_spec.rb
       pending_expiry_spec.rb
     transport/
@@ -161,8 +163,8 @@ Domain-agnostic preference resolution from multiple sources. Lives in lex-mesh f
 
 ## Development Notes
 
-- `online_agents` returns all agents with `status: :online` — currently all registered agents are always online since heartbeat timeout is not enforced
-- `MESH_SILENCE_TIMEOUT` and `MAX_HOPS` are defined but not yet enforced in the routing logic
+- `online_agents` returns agents with `status: :online`; `SilenceWatchdog` actor marks agents `:offline` when `last_seen` exceeds `MESH_SILENCE_TIMEOUT` (30s)
+- `MAX_HOPS` is defined but not yet enforced in the routing logic
 - The `delivered_to` field in sent message result contains agent_id strings, not agent records
 
 ---

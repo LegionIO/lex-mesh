@@ -272,6 +272,47 @@ RSpec.describe Legion::Extensions::Mesh::Helpers::Registry do
     end
   end
 
+  describe '#expire_silent_agents' do
+    it 'marks stale agents as offline' do
+      registry.register_agent('a1')
+      registry.agents['a1'][:last_seen] = Time.now.utc - 60
+      expired = registry.expire_silent_agents(timeout: 30)
+      expect(expired).to eq(['a1'])
+      expect(registry.agents['a1'][:status]).to eq(:offline)
+    end
+
+    it 'does not expire agents within timeout' do
+      registry.register_agent('a1')
+      expired = registry.expire_silent_agents(timeout: 30)
+      expect(expired).to eq([])
+      expect(registry.agents['a1'][:status]).to eq(:online)
+    end
+
+    it 'does not expire already-offline agents' do
+      registry.register_agent('a1')
+      registry.agents['a1'][:last_seen] = Time.now.utc - 60
+      registry.agents['a1'][:status] = :offline
+      expired = registry.expire_silent_agents(timeout: 30)
+      expect(expired).to eq([])
+    end
+
+    it 'returns multiple expired agent ids' do
+      registry.register_agent('a1')
+      registry.register_agent('a2')
+      registry.agents['a1'][:last_seen] = Time.now.utc - 60
+      registry.agents['a2'][:last_seen] = Time.now.utc - 60
+      expired = registry.expire_silent_agents(timeout: 30)
+      expect(expired).to contain_exactly('a1', 'a2')
+    end
+
+    it 'uses MESH_SILENCE_TIMEOUT as default' do
+      registry.register_agent('a1')
+      registry.agents['a1'][:last_seen] = Time.now.utc - 31
+      expired = registry.expire_silent_agents
+      expect(expired).to eq(['a1'])
+    end
+  end
+
   describe '#count' do
     it 'returns 0 for an empty registry' do
       expect(registry.count).to eq(0)

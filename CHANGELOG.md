@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.3] - 2026-03-18
+
+### Added
+- `Registry#expire_silent_agents(timeout:)` marks agents as `:offline` when `last_seen` exceeds `MESH_SILENCE_TIMEOUT` (30s default)
+- `Runners::Mesh#expire_silent_agents` runner method wrapping registry expiry
+- `Actor::SilenceWatchdog` periodic actor (15s) enforces `MESH_SILENCE_TIMEOUT` — agents that miss heartbeats are marked offline
+- 12 new specs: 5 for registry expiry, 6 for actor, 1 for runner
+
 ## [0.2.2] - 2026-03-18
 
 ### Added
