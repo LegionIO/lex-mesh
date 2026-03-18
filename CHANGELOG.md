@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.2.2] - 2026-03-18
+
+### Added
+- `Transport::Messages::MeshDeparture` publishes departure signal to `node` exchange on `mesh.departure` routing key
+- `Runners::Mesh#unregister` now emits mesh departure signal with agent_id and capabilities when agent leaves
+- Departure spec with 7 examples for message class
+
+### Fixed
+- Transport message spec guards now use per-constant `unless defined?` to prevent load-order pollution between Agent/Node exchange stubs
+
 ## [0.2.1] - 2026-03-18
 
 ### Added

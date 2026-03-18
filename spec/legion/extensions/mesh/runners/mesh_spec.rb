@@ -23,6 +23,22 @@ RSpec.describe Legion::Extensions::Mesh::Runners::Mesh do
       result = client.unregister(agent_id: 'unknown')
       expect(result[:error]).to eq(:not_found)
     end
+
+    it 'publishes mesh departure signal when transport available' do
+      client.register(agent_id: 'agent-1', capabilities: [:search])
+
+      mock_msg = instance_double('MeshDeparture', publish: nil)
+      stub_const('Legion::Extensions::Mesh::Transport::Messages::MeshDeparture', class_double('MeshDeparture', new: mock_msg))
+
+      client.unregister(agent_id: 'agent-1')
+      expect(mock_msg).to have_received(:publish)
+    end
+
+    it 'succeeds without transport available' do
+      client.register(agent_id: 'agent-1')
+      result = client.unregister(agent_id: 'agent-1')
+      expect(result[:unregistered]).to be true
+    end
   end
 
   describe '#send_message' do

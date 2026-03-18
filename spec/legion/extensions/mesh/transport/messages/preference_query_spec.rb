@@ -10,7 +10,13 @@ unless defined?(Legion::Transport::Message)
           @options = options
         end
       end
+    end
+  end
+end
 
+unless defined?(Legion::Transport::Exchanges::Agent)
+  module Legion
+    module Transport
       module Exchanges
         class Agent
           def self.name

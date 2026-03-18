@@ -11,7 +11,7 @@ Agent-to-agent mesh communication layer for the LegionIO cognitive architecture.
 ## Gem Info
 
 - **Gem name**: `lex-mesh`
-- **Version**: `0.2.1`
+- **Version**: `0.2.2`
 - **Module**: `Legion::Extensions::Mesh`
 - **Ruby**: `>= 3.4`
 - **License**: MIT
@@ -27,12 +27,13 @@ lib/legion/extensions/mesh/
     preference_profile.rb  # PreferenceProfile - resolve, store, clear, preference_instructions
     pending_requests.rb    # Thread-safe (Mutex) tracker for async RPC by correlation_id with TTL
   runners/
-    mesh.rb                # register, unregister, heartbeat, send_message, find_agents, mesh_status
+    mesh.rb                # register, unregister (+ departure signal), heartbeat, send_message, find_agents, mesh_status
     preferences.rb         # query_preferences, handle_preference_query, handle_preference_response, dispatch_preference_message, expire_pending_requests
   transport/               # AMQP transport classes (loaded conditionally when Legion::Transport available)
     messages/
       preference_query.rb    # Publishes to agent exchange with agent.<target>.preferences routing key
       preference_response.rb # Response routed back via agent.<requester>.preferences
+      mesh_departure.rb      # Publishes to node exchange with mesh.departure routing key on agent leave
     queues/
       preference.rb          # Per-agent preference queue (agent.<id>.preferences, auto-delete)
   actors/
@@ -52,6 +53,7 @@ spec/
       pending_expiry_spec.rb
     transport/
       messages/
+        mesh_departure_spec.rb
         preference_query_spec.rb
         preference_response_spec.rb
       queues/
@@ -118,9 +120,19 @@ Agent-to-agent preference query via AMQP RPC over the `agent` exchange (from `le
 
 **Routing key separation**: Preference messages use `agent.<id>.preferences` routing key suffix, avoiding collision with GAIA's `agent.<id>` inbound queue on the same topic exchange.
 
+## Mesh Departure Signal (v0.2.2)
+
+When an agent successfully unregisters, a `MeshDeparture` message is published to the `node` exchange with routing key `mesh.departure`. The message includes:
+- `agent_id` — the departing agent
+- `capabilities` — what the agent was providing
+- `departed_at` — timestamp
+
+This enables downstream consumers (e.g., Apollo's `GaiaIntegration.handle_mesh_departure`) to detect knowledge vulnerability when sole experts leave. The publish is fire-and-forget with rescue — unregister succeeds even if transport fails.
+
 ## Integration Points
 
-- **legion-transport**: `agent` exchange and `Agent` queue for identity-bound preference RPC
+- **legion-transport**: `agent` exchange for preference RPC; `node` exchange for mesh departure signals
+- **lex-apollo**: `GaiaIntegration.handle_mesh_departure` consumes `mesh.departure` events for knowledge vulnerability detection
 - **lex-trust**: `TRUST_CONSIDER_THRESHOLD` referenced in topology; callers should filter by trust before routing sensitive messages
 - **lex-swarm**: swarm agents register with mesh on formation; use multicast for swarm-wide coordination
 - **lex-tick**: `mesh_interface` phase (one of 11) handles inbound mesh messages

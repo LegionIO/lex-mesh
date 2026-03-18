@@ -11,6 +11,7 @@ require 'legion/extensions/mesh/runners/preferences'
 if defined?(Legion::Transport)
   require 'legion/extensions/mesh/transport/messages/preference_query'
   require 'legion/extensions/mesh/transport/messages/preference_response'
+  require 'legion/extensions/mesh/transport/messages/mesh_departure'
   require 'legion/extensions/mesh/transport/queues/preference'
 end
 

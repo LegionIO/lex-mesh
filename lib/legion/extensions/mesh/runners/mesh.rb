@@ -18,6 +18,7 @@ module Legion
             result = mesh_registry.unregister_agent(agent_id)
             if result
               Legion::Logging.info "[mesh] unregistered: agent=#{agent_id}"
+              publish_mesh_departure(agent_id: agent_id, capabilities: result[:capabilities] || [])
               { unregistered: true }
             else
               Legion::Logging.debug "[mesh] unregister failed: agent=#{agent_id} not found"
@@ -56,6 +57,17 @@ module Legion
           end
 
           private
+
+          def publish_mesh_departure(agent_id:, capabilities:)
+            return unless defined?(Legion::Extensions::Mesh::Transport::Messages::MeshDeparture)
+
+            Legion::Extensions::Mesh::Transport::Messages::MeshDeparture.new(
+              agent_id: agent_id, capabilities: capabilities
+            ).publish
+            Legion::Logging.debug "[mesh] departure signal published: agent=#{agent_id}"
+          rescue StandardError => e
+            Legion::Logging.warn "[mesh] failed to publish departure signal: #{e.message}"
+          end
 
           def mesh_registry
             @mesh_registry ||= Helpers::Registry.new
