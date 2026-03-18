@@ -4,7 +4,14 @@ require 'legion/extensions/mesh/version'
 require 'legion/extensions/mesh/helpers/topology'
 require 'legion/extensions/mesh/helpers/registry'
 require 'legion/extensions/mesh/helpers/preference_profile'
+require 'legion/extensions/mesh/helpers/pending_requests'
 require 'legion/extensions/mesh/runners/mesh'
+require 'legion/extensions/mesh/runners/preferences'
+
+if defined?(Legion::Transport)
+  require 'legion/extensions/mesh/transport/messages/preference_query'
+  require 'legion/extensions/mesh/transport/messages/preference_response'
+end
 
 module Legion
   module Extensions
