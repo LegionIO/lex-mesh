@@ -11,7 +11,7 @@ Agent-to-agent mesh communication layer for the LegionIO cognitive architecture.
 ## Gem Info
 
 - **Gem name**: `lex-mesh`
-- **Version**: `0.1.1`
+- **Version**: `0.2.0`
 - **Module**: `Legion::Extensions::Mesh`
 - **Ruby**: `>= 3.4`
 - **License**: MIT
@@ -22,15 +22,28 @@ Agent-to-agent mesh communication layer for the LegionIO cognitive architecture.
 lib/legion/extensions/mesh/
   version.rb
   helpers/
-    topology.rb           # PROTOCOLS, PATTERNS, constants, valid_protocol?, valid_pattern?
-    registry.rb           # Registry class - agents hash, capabilities index, messages buffer
-    preference_profile.rb # PreferenceProfile - resolve, store, clear, preference_instructions
+    topology.rb            # PROTOCOLS, PATTERNS, constants, valid_protocol?, valid_pattern?
+    registry.rb            # Registry class - agents hash, capabilities index, messages buffer
+    preference_profile.rb  # PreferenceProfile - resolve, store, clear, preference_instructions
+    pending_requests.rb    # Thread-safe (Mutex) tracker for async RPC by correlation_id with TTL
   runners/
-    mesh.rb       # register, unregister, heartbeat, send_message, find_agents, mesh_status
+    mesh.rb                # register, unregister, heartbeat, send_message, find_agents, mesh_status
+    preferences.rb         # query_preferences, handle_preference_query, handle_preference_response, expire_pending_requests
+  transport/               # AMQP message classes (loaded conditionally when Legion::Transport available)
+    messages/
+      preference_query.rb    # Publishes to agent exchange with agent.<target> routing key
+      preference_response.rb # Response routed back to requesting agent via reply_to
 spec/
   legion/extensions/mesh/
     runners/
       mesh_spec.rb
+      preferences_spec.rb
+    helpers/
+      pending_requests_spec.rb
+    transport/
+      messages/
+        preference_query_spec.rb
+        preference_response_spec.rb
     client_spec.rb
 ```
 
@@ -76,8 +89,26 @@ Agent record structure:
 
 The message (including `delivered_to` list) is appended to `@messages` buffer (shift when > 1000).
 
+## Async Preference Exchange (v0.2.0)
+
+Agent-to-agent preference query via AMQP RPC over the `agent` exchange (from `legion-transport`).
+
+**Pattern**: Non-blocking async with timeout fallback.
+1. `query_preferences(target_agent_id:)` publishes a `PreferenceQuery` message to `agent.<target>` with `reply_to` + `correlation_id`
+2. Returns defaults immediately; registers a callback in `PendingRequests`
+3. Target agent's `handle_preference_query` resolves local preferences via `PreferenceProfile`
+4. Target publishes `PreferenceResponse` back to the requesting agent's `reply_to` queue
+5. Requester's `handle_preference_response` resolves the pending callback with the profile
+
+**PendingRequests**: Thread-safe tracker (Mutex-based, no `concurrent-ruby` dependency). Keyed by `correlation_id`, each entry has a TTL (default 30s). `expire_pending_requests` cleans up stale entries.
+
+**Transport**: Message classes are loaded conditionally (`if defined?(Legion::Transport)`) to allow standalone use without RabbitMQ.
+
+**Not yet built**: AMQP subscription actor to wire incoming messages on the agent queue to the runner methods.
+
 ## Integration Points
 
+- **legion-transport**: `agent` exchange and `Agent` queue for identity-bound preference RPC
 - **lex-trust**: `TRUST_CONSIDER_THRESHOLD` referenced in topology; callers should filter by trust before routing sensitive messages
 - **lex-swarm**: swarm agents register with mesh on formation; use multicast for swarm-wide coordination
 - **lex-tick**: `mesh_interface` phase (one of 11) handles inbound mesh messages
@@ -109,3 +140,7 @@ Domain-agnostic preference resolution from multiple sources. Lives in lex-mesh f
 - `online_agents` returns all agents with `status: :online` — currently all registered agents are always online since heartbeat timeout is not enforced
 - `MESH_SILENCE_TIMEOUT` and `MAX_HOPS` are defined but not yet enforced in the routing logic
 - The `delivered_to` field in sent message result contains agent_id strings, not agent records
+
+---
+
+**Maintained By**: Matthew Iverson (@Esity)
