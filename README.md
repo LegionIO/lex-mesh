@@ -96,6 +96,28 @@ Legion::Extensions::Mesh::Runners::Mesh.unregister(agent_id: "agent-42")
 # => { unregistered: true }
 ```
 
+When an agent unregisters, a departure signal is published to the `node` exchange (routing key `mesh.departure`). Downstream consumers such as `lex-apollo` can use this to detect knowledge vulnerability when sole capability experts leave.
+
+### Preference Exchange
+
+Agents can query each other's communication preferences via an async AMQP RPC pattern. The call returns default preferences immediately and resolves the full profile asynchronously when the target responds.
+
+```ruby
+Legion::Extensions::Mesh::Runners::Preferences.query_preferences(
+  target_agent_id: "agent-42"
+)
+# => { success: true, source: :pending, correlation_id: "uuid", profile: { ... } }
+```
+
+## Actors
+
+| Actor | Interval | What It Does |
+|-------|----------|--------------|
+| `Heartbeat` | Every 10s | Broadcasts this agent's heartbeat to keep presence alive |
+| `SilenceWatchdog` | Every 15s | Marks agents as `:offline` when last heartbeat exceeds `MESH_SILENCE_TIMEOUT` (30s) |
+| `PreferenceListener` | Subscription | Dispatches incoming preference queries and responses |
+| `PendingExpiry` | Every 30s | Clears TTL-expired pending preference requests |
+
 ## Development
 
 ```bash
