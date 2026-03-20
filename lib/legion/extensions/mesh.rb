@@ -8,6 +8,7 @@ require 'legion/extensions/mesh/helpers/pending_requests'
 require 'legion/extensions/mesh/helpers/delegation'
 require 'legion/extensions/mesh/runners/mesh'
 require 'legion/extensions/mesh/runners/preferences'
+require 'legion/extensions/mesh/runners/delegation'
 
 if defined?(Legion::Transport)
   require 'legion/extensions/mesh/transport/messages/preference_query'
