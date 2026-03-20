@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.2.5] - 2026-03-20
+
+### Added
+- `Registry#all_agents` returns all agent records as an array
+- `source`, `node`, `generation` fields on registered agents
+- `heartbeat` now increments `generation` counter
+- `Runners::Mesh#publish_gossip` — broadcasts peer table to node exchange every 15 seconds
+- `Runners::Mesh#merge_gossip` — integrates incoming gossip with generation-based conflict resolution
+- `Transport::Messages::Gossip` — AMQP message for peer table broadcast (routing key: `mesh.gossip`)
+- `Transport::Queues::Gossip` — queue binding for gossip messages
+- `Actor::Gossip` — periodic actor (15s) that calls `publish_gossip`
+
 ## [0.2.4] - 2026-03-20
 
 ### Added

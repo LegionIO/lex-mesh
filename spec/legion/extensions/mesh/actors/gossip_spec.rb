@@ -1,14 +1,16 @@
 # frozen_string_literal: true
 
 # Stub the framework actor base class since legionio gem is not available in test
-module Legion
-  module Extensions
-    module Actors
-      class Every # rubocop:disable Lint/EmptyClass
+unless defined?(Legion::Extensions::Actors::Every)
+  module Legion
+    module Extensions
+      module Actors
+        class Every # rubocop:disable Lint/EmptyClass
+        end
       end
     end
   end
-end unless defined?(Legion::Extensions::Actors::Every)
+end
 
 $LOADED_FEATURES << 'legion/extensions/actors/every' unless $LOADED_FEATURES.include?('legion/extensions/actors/every')
 

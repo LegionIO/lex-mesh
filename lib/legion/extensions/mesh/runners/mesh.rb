@@ -78,7 +78,7 @@ module Legion
             { success: false, reason: :error, message: e.message }
           end
 
-          def merge_gossip(incoming_peers:, sender:, **)
+          def merge_gossip(incoming_peers:, sender: nil, **) # rubocop:disable Lint/UnusedMethodArgument
             registry = mesh_registry
             merged = 0
 
@@ -133,7 +133,7 @@ module Legion
 
           def gossip_max_peers
             settings = Legion::Settings.dig(:mesh, :gossip)
-            ((settings.is_a?(Hash) ? settings[:max_peers_per_message] : nil) || 100)
+            (settings.is_a?(Hash) ? settings[:max_peers_per_message] : nil) || 100
           rescue StandardError
             100
           end
