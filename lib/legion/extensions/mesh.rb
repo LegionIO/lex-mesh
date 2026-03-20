@@ -5,6 +5,7 @@ require 'legion/extensions/mesh/helpers/topology'
 require 'legion/extensions/mesh/helpers/registry'
 require 'legion/extensions/mesh/helpers/preference_profile'
 require 'legion/extensions/mesh/helpers/pending_requests'
+require 'legion/extensions/mesh/helpers/delegation'
 require 'legion/extensions/mesh/runners/mesh'
 require 'legion/extensions/mesh/runners/preferences'
 
