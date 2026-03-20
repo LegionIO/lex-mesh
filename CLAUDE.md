@@ -159,7 +159,7 @@ Domain-agnostic preference resolution from multiple sources. Lives in lex-mesh f
 
 **Preference domains**: verbosity, tone, format, technical_depth, custom:*
 
-**Design doc**: `docs/plans/2026-03-15-preference-exchange-design.md`
+**Design doc**: `docs/work/completed/2026-03-15-preference-exchange-design.md`
 
 ## Development Notes
 
