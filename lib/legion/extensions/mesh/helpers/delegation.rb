@@ -18,15 +18,13 @@ module Legion
             @max_active_per_agent = max_active_per_agent
           end
 
-          def create(from:, to:, task_context:, consent_level:, parent_delegation_id: nil) # rubocop:disable Metrics/MethodLength
+          def create(from:, to:, task_context:, consent_level:, parent_delegation_id: nil)
             depth = compute_depth(parent_delegation_id)
             return { error: :max_depth_exceeded } if depth >= @max_depth
 
             if parent_delegation_id
               parent = find(parent_delegation_id)
-              if parent && CONSENT_LEVELS.index(consent_level) > CONSENT_LEVELS.index(parent[:consent_level])
-                return { error: :consent_escalation }
-              end
+              return { error: :consent_escalation } if parent && CONSENT_LEVELS.index(consent_level) > CONSENT_LEVELS.index(parent[:consent_level])
             end
 
             active_count = (@agent_delegations[from] || []).count do |id|
