@@ -313,6 +313,32 @@ RSpec.describe Legion::Extensions::Mesh::Helpers::Registry do
     end
   end
 
+  describe 'gossip fields' do
+    it 'stores source, node, and generation on registration' do
+      registry.register_agent('agent-1', capabilities: [:test], source: :native, node: 'node-01')
+      agent = registry.agents['agent-1']
+      expect(agent[:source]).to eq(:native)
+      expect(agent[:node]).to eq('node-01')
+      expect(agent[:generation]).to eq(1)
+    end
+
+    it 'increments generation on heartbeat' do
+      registry.register_agent('agent-1', capabilities: [:test])
+      registry.heartbeat('agent-1')
+      expect(registry.agents['agent-1'][:generation]).to eq(2)
+    end
+  end
+
+  describe '#all_agents' do
+    it 'returns all agent records as an array' do
+      registry.register_agent('a1', capabilities: [:search])
+      registry.register_agent('a2', capabilities: [:compute])
+      all = registry.all_agents
+      expect(all).to be_an(Array)
+      expect(all.size).to eq(2)
+    end
+  end
+
   describe '#count' do
     it 'returns 0 for an empty registry' do
       expect(registry.count).to eq(0)

@@ -13,11 +13,14 @@ module Legion
             @messages = []
           end
 
-          def register_agent(agent_id, capabilities: [], endpoint: nil)
+          def register_agent(agent_id, capabilities: [], endpoint: nil, source: :native, node: nil)
             @agents[agent_id] = {
               agent_id:      agent_id,
               capabilities:  capabilities,
               endpoint:      endpoint,
+              source:        source,
+              node:          node || local_node_name,
+              generation:    1,
               registered_at: Time.now.utc,
               last_seen:     Time.now.utc,
               status:        :online
@@ -39,6 +42,7 @@ module Legion
 
             agent[:last_seen] = Time.now.utc
             agent[:status] = :online
+            agent[:generation] = (agent[:generation] || 0) + 1
           end
 
           def find_by_capability(capability)
@@ -81,8 +85,20 @@ module Legion
             @agents.values.select { |a| a[:status] == :online }
           end
 
+          def all_agents
+            @agents.values
+          end
+
           def count
             @agents.size
+          end
+
+          private
+
+          def local_node_name
+            Legion::Settings[:client][:name]
+          rescue StandardError
+            'unknown'
           end
         end
       end
