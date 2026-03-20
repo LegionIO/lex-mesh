@@ -25,4 +25,7 @@ Gem::Specification.new do |spec|
     Dir.glob('{lib,spec}/**/*') + %w[lex-mesh.gemspec Gemfile]
   end
   spec.require_paths = ['lib']
+
+  spec.add_dependency 'base64'
+  spec.add_dependency 'ed25519', '~> 1.3'
 end
