@@ -64,6 +64,50 @@ module Legion
             { success: true, expired: expired, count: expired.size }
           end
 
+          def publish_gossip(**)
+            registry = mesh_registry
+            peers = registry.all_agents.first(gossip_max_peers).map do |agent|
+              agent.slice(:agent_id, :capabilities, :node, :source, :status, :generation,
+                          :last_seen, :registered_at).transform_values { |v| v.is_a?(Time) ? v.to_s : v }
+            end
+
+            @gossip_round = (@gossip_round || 0) + 1
+            publish_gossip_message(peers)
+            { success: true, peers_broadcast: peers.size, gossip_round: @gossip_round }
+          rescue StandardError => e
+            { success: false, reason: :error, message: e.message }
+          end
+
+          def merge_gossip(incoming_peers:, sender:, **)
+            registry = mesh_registry
+            merged = 0
+
+            incoming_peers.each do |peer|
+              peer = peer.transform_keys(&:to_sym)
+              next if peer[:node] == local_node_name
+
+              local = registry.agents[peer[:agent_id]]
+              if local.nil?
+                registry.register_agent(
+                  peer[:agent_id],
+                  capabilities: (peer[:capabilities] || []).map(&:to_sym),
+                  source:       (peer[:source] || :native).to_sym,
+                  node:         peer[:node]
+                )
+                registry.agents[peer[:agent_id]][:generation] = peer[:generation] || 1
+                merged += 1
+              elsif (peer[:generation] || 0) > (local[:generation] || 0)
+                local.merge!(peer.slice(:capabilities, :status, :generation, :last_seen))
+                local[:capabilities] = (local[:capabilities] || []).map(&:to_sym)
+                merged += 1
+              end
+            end
+
+            { success: true, merged: merged, total_peers: incoming_peers.size }
+          rescue StandardError => e
+            { success: false, reason: :error, message: e.message }
+          end
+
           private
 
           def publish_mesh_departure(agent_id:, capabilities:)
@@ -75,6 +119,29 @@ module Legion
             Legion::Logging.debug "[mesh] departure signal published: agent=#{agent_id}"
           rescue StandardError => e
             Legion::Logging.warn "[mesh] failed to publish departure signal: #{e.message}"
+          end
+
+          def publish_gossip_message(peers)
+            return unless defined?(Legion::Extensions::Mesh::Transport::Messages::Gossip)
+
+            Legion::Extensions::Mesh::Transport::Messages::Gossip.new(
+              sender:       local_node_name,
+              gossip_round: @gossip_round,
+              peers:        peers
+            ).publish
+          end
+
+          def gossip_max_peers
+            settings = Legion::Settings.dig(:mesh, :gossip)
+            ((settings.is_a?(Hash) ? settings[:max_peers_per_message] : nil) || 100)
+          rescue StandardError
+            100
+          end
+
+          def local_node_name
+            Legion::Settings[:client][:name]
+          rescue StandardError
+            'unknown'
           end
 
           def mesh_registry
