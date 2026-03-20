@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.4] - 2026-03-20
+
+### Added
+- `Helpers::Delegation` class for in-memory delegation chain tracking with consent non-escalation, max depth (3), and cascade revocation
+- `Runners::Delegation` with delegate, complete_delegation, revoke_delegation, delegation_chain, agent_delegations, and delegation_stats methods
+- `Helpers::PeerVerify` module with Ed25519 sign_message, verify_message, and per-peer rate limiting for cross-org diplomacy
+- `ed25519` (~> 1.3) and `base64` gem dependencies
+
 ## [0.2.3] - 2026-03-18
 
 ### Added
