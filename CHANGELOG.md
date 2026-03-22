@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.3.0] - 2026-03-22
+
+### Added
+- `Runners::TaskRequest`: RPC-style task delegation combining capability discovery, delegation tracking, and PendingRequests async callback
+- `request_task`: send task to agent by ID or capability with timeout
+- `handle_task_reply`: resolve pending task request when reply arrives
+- `pending_task_stats` and `expire_pending_tasks`: monitoring and cleanup
+- Client now includes Delegation and TaskRequest runners
+
 ## [0.2.5] - 2026-03-20
 
 ### Added

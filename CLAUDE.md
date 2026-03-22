@@ -11,7 +11,7 @@ Agent-to-agent mesh communication layer for the LegionIO cognitive architecture.
 ## Gem Info
 
 - **Gem name**: `lex-mesh`
-- **Version**: `0.2.3`
+- **Version**: `0.3.0`
 - **Module**: `Legion::Extensions::Mesh`
 - **Ruby**: `>= 3.4`
 - **License**: MIT
@@ -29,6 +29,8 @@ lib/legion/extensions/mesh/
   runners/
     mesh.rb                # register, unregister (+ departure signal), heartbeat, send_message, find_agents, mesh_status, expire_silent_agents
     preferences.rb         # query_preferences, handle_preference_query, handle_preference_response, dispatch_preference_message, expire_pending_requests
+    delegation.rb          # delegate, complete_delegation, revoke_delegation, delegation_chain, agent_delegations, delegation_stats
+    task_request.rb        # request_task, handle_task_reply, pending_task_stats, expire_pending_tasks
   transport/               # AMQP transport classes (loaded conditionally when Legion::Transport available)
     messages/
       preference_query.rb    # Publishes to agent exchange with agent.<target>.preferences routing key
@@ -46,6 +48,8 @@ spec/
     runners/
       mesh_spec.rb
       preferences_spec.rb
+      delegation_spec.rb
+      task_request_spec.rb
     helpers/
       pending_requests_spec.rb
     actors/
@@ -130,6 +134,24 @@ When an agent successfully unregisters, a `MeshDeparture` message is published t
 - `departed_at` — timestamp
 
 This enables downstream consumers (e.g., Apollo's `GaiaIntegration.handle_mesh_departure`) to detect knowledge vulnerability when sole experts leave. The publish is fire-and-forget with rescue — unregister succeeds even if transport fails.
+
+## Task Request RPC (v0.3.0)
+
+RPC-style task delegation over the mesh, combining capability discovery, delegation tracking, and async callback via `PendingRequests`.
+
+**Module**: `Runners::TaskRequest`
+
+**Key methods:**
+- `request_task(to: nil, capability: nil, task:, timeout: 30, **opts)` — send a task request to a specific agent by ID or route to the best available agent by capability. Registers a `PendingRequests` callback keyed by `correlation_id`. Returns `{ success: true, status: :pending, correlation_id: }` or `{ success: false, reason: }`.
+- `handle_task_reply(correlation_id:, result:, **opts)` — resolve the pending callback when the reply arrives. Returns `{ success: true, resolved: true }` or `{ success: false, reason: :not_found }`.
+- `pending_task_stats` — returns `{ pending_count: N }` for monitoring.
+- `expire_pending_tasks` — cleans up TTL-expired pending task requests, returns `{ expired: N }`.
+
+**Routing**: When `to:` is provided and matches a registered agent, the task is sent directly. When `to:` is not a known agent ID (or omitted), `find_by_capability` is used to locate an agent that can handle the task.
+
+**Delegation tracking**: Each `request_task` call creates a delegation record via `Helpers::Delegation`, enforcing max depth (3) and consent non-escalation constraints.
+
+**Standalone Client**: `Client` includes `Runners::TaskRequest` (and `Runners::Delegation`) — callable without the full framework.
 
 ## Integration Points
 
