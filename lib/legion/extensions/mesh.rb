@@ -10,6 +10,7 @@ require 'legion/extensions/mesh/helpers/peer_verify'
 require 'legion/extensions/mesh/runners/mesh'
 require 'legion/extensions/mesh/runners/preferences'
 require 'legion/extensions/mesh/runners/delegation'
+require 'legion/extensions/mesh/runners/task_request'
 
 if defined?(Legion::Transport)
   require 'legion/extensions/mesh/transport/messages/preference_query'

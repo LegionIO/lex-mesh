@@ -51,4 +51,26 @@ RSpec.describe Legion::Extensions::Mesh::Client do
       expect(result[:expired]).to eq(0)
     end
   end
+
+  it 'responds to delegation runner methods' do
+    expect(client).to respond_to(:delegate)
+    expect(client).to respond_to(:complete_delegation)
+    expect(client).to respond_to(:revoke_delegation)
+  end
+
+  it 'responds to task request runner methods' do
+    expect(client).to respond_to(:request_task)
+    expect(client).to respond_to(:handle_task_reply)
+    expect(client).to respond_to(:pending_task_stats)
+  end
+
+  describe '#request_task' do
+    it 'sends a task request via the client' do
+      client.register(agent_id: 'a', capabilities: [:orchestration])
+      client.register(agent_id: 'b', capabilities: [:review])
+      result = client.request_task(from: 'a', to: 'b', task: 'review', payload: {})
+      expect(result[:success]).to be true
+      expect(result[:target_agent]).to eq('b')
+    end
+  end
 end
