@@ -75,10 +75,12 @@ module Legion
 
           def local_agent_id
             if defined?(Legion::Settings)
-              Legion::Settings['client']['name']
+              Legion::Settings[:client][:name]
             else
               'unknown'
             end
+          rescue StandardError
+            'unknown'
           end
 
           def publish_preference_response(msg, profile)

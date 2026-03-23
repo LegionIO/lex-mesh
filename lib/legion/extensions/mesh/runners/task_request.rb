@@ -37,7 +37,7 @@ module Legion
                          payload: { type: :task_request, correlation_id: correlation_id,
                                     task: task, payload: payload, reply_to: from })
 
-            Legion::Logging.info "[mesh-task] request: from=#{from} to=#{target_id} task=#{task} cid=#{correlation_id[0..11]}"
+            log.info "[mesh-task] request: from=#{from} to=#{target_id} task=#{task} cid=#{correlation_id[0..11]}"
             { success: true, correlation_id: correlation_id, delegation_id: delegation[:delegation_id],
               target_agent: target_id }
           end
@@ -45,7 +45,7 @@ module Legion
           def handle_task_reply(correlation_id:, result:, **)
             resolved = task_pending.resolve(correlation_id: correlation_id, result: result)
             if resolved
-              Legion::Logging.debug "[mesh-task] reply resolved: cid=#{correlation_id[0..11]}"
+              log.debug "[mesh-task] reply resolved: cid=#{correlation_id[0..11]}"
               { success: true, resolved: true, correlation_id: correlation_id }
             else
               { success: false, reason: :not_found, correlation_id: correlation_id }
@@ -58,7 +58,7 @@ module Legion
 
           def expire_pending_tasks(**)
             expired = task_pending.expire
-            Legion::Logging.debug "[mesh-task] expired #{expired.size} pending tasks" unless expired.empty?
+            log.debug "[mesh-task] expired #{expired.size} pending tasks" unless expired.empty?
             { success: true, expired_count: expired.size, expired_ids: expired }
           end
 

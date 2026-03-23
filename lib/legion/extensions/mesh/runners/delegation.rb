@@ -66,7 +66,7 @@ module Legion
               detail:       { to: record[:to_agent_id], depth: record[:depth], consent: record[:consent_level] }
             ).publish
           rescue StandardError => e
-            Legion::Logging.warn "[mesh] failed to publish #{event_type}: #{e.message}" if defined?(Legion::Logging)
+            log.warn "[mesh] failed to publish #{event_type}: #{e.message}"
           end
 
           def delegation_tracker
