@@ -178,6 +178,73 @@ RSpec.describe Legion::Extensions::Mesh::Runners::Preferences do
     end
   end
 
+  describe '#handle_preference_response with mesh caching' do
+    it 'caches the received profile' do
+      pending_req = runner.send(:pending_requests)
+      pending_req.register(
+        correlation_id: 'corr-cache',
+        callback: ->(profile) { }
+      )
+      runner.handle_preference_response(
+        correlation_id: 'corr-cache',
+        profile: { verbosity: :concise, tone: :casual },
+        responding_agent_id: 'agent-42'
+      )
+      cached = Legion::Extensions::Mesh::Helpers::PreferenceProfile.cached_mesh_profile(
+        agent_id: 'agent-42'
+      )
+      expect(cached).to be_a(Hash)
+      expect(cached[:verbosity]).to eq(:concise)
+    end
+  end
+
+  describe 'personality compatibility' do
+    context 'without personality module' do
+      it 'returns nil compatibility in for_agent' do
+        result = Legion::Extensions::Mesh::Helpers::PreferenceProfile.for_agent(agent_id: 'agent-99')
+        expect(result[:compatibility]).to be_nil
+      end
+    end
+
+    context 'with personality module available' do
+      let(:personality_runner) do
+        Module.new do
+          def personality_compatibility(other_profile:, **)
+            { compatibility: 0.82, interpretation: :compatible }
+          end
+
+          private
+
+          def personality_store
+            @personality_store ||= Struct.new(:model).new(nil)
+          end
+        end
+      end
+
+      before do
+        stub_const(
+          'Legion::Extensions::Agentic::Self::Personality::Runners::Personality',
+          personality_runner
+        )
+      end
+
+      it 'returns compatibility score when personality data exists' do
+        Legion::Extensions::Mesh::Helpers::PreferenceProfile.store_mesh_profile(
+          agent_id: 'agent-42',
+          profile: {
+            verbosity: :concise,
+            personality: { openness: 0.8, conscientiousness: 0.6 }
+          },
+          source_agent_id: 'agent-42'
+        )
+        result = Legion::Extensions::Mesh::Helpers::PreferenceProfile.for_agent(agent_id: 'agent-42')
+        expect(result[:compatibility]).to be_a(Hash)
+        expect(result[:compatibility][:score]).to eq(0.82)
+        expect(result[:compatibility][:interpretation]).to eq(:compatible)
+      end
+    end
+  end
+
   describe '#expire_pending_requests' do
     it 'cleans up expired entries and returns count' do
       pending_req = runner.send(:pending_requests)

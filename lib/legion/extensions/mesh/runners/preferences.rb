@@ -46,7 +46,15 @@ module Legion
             { success: false, error: e.message }
           end
 
-          def handle_preference_response(correlation_id:, profile:, **)
+          def handle_preference_response(correlation_id:, profile:, responding_agent_id: nil, **)
+            if responding_agent_id && profile.is_a?(Hash)
+              Helpers::PreferenceProfile.store_mesh_profile(
+                agent_id:        responding_agent_id,
+                profile:         profile,
+                source_agent_id: responding_agent_id
+              )
+            end
+
             resolved = pending_requests.resolve(correlation_id: correlation_id, result: profile)
             { resolved: resolved }
           end
@@ -118,7 +126,7 @@ module Legion
 
           def default_preference_callback(target_agent_id:)
             lambda do |profile|
-              log_debug("[mesh] received preferences for #{target_agent_id}: #{profile.keys.join(', ')}")
+              log_debug("[mesh] received and cached preferences for #{target_agent_id}")
             end
           end
 
