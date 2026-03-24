@@ -183,6 +183,16 @@ Domain-agnostic preference resolution from multiple sources. Lives in lex-mesh f
 
 **Design doc**: `docs/work/completed/2026-03-15-preference-exchange-design.md`
 
+## Preference Exchange Phase 2 (v0.4.0)
+
+**Trust gating**: `handle_preference_query` checks requesting agent's trust composite via `Social::Trust::Runners::Trust.get_trust`. Agents below `TRUST_CONSIDER_THRESHOLD` (0.3) receive `{ success: false, reason: :insufficient_trust }`. Falls back to open sharing if trust module isn't loaded.
+
+**Universal entry point**: `PreferenceProfile.for_agent(agent_id:)` — checks mesh cache first (returns `source: :mesh_cache`), falls back to local lex-memory resolve (`source: :local`). Includes `compatibility:` hash when personality data is available.
+
+**Mesh cache**: `store_mesh_profile(agent_id:, profile:, source_agent_id:)` stores received preferences in-memory with TTL (default 3600s). `cached_mesh_profile(agent_id:, ttl:)` returns cached profile or nil if expired. `clear_mesh_cache(agent_id:)` for manual invalidation.
+
+**Personality compatibility**: When `lex-agentic-self` is loaded and the cached profile includes a `:personality` hash, `for_agent` calls `personality_compatibility` and includes `{ score:, interpretation: }` in the response.
+
 ## Development Notes
 
 - `online_agents` returns agents with `status: :online`; `SilenceWatchdog` actor marks agents `:offline` when `last_seen` exceeds `MESH_SILENCE_TIMEOUT` (30s)

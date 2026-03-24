@@ -3,7 +3,7 @@
 module Legion
   module Extensions
     module Mesh
-      VERSION = '0.3.4'
+      VERSION = '0.4.0'
     end
   end
 end

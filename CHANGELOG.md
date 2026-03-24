@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.4.0] - 2026-03-24
+
+### Added
+- Trust gating on preference query responder: refuses preferences to agents below TRUST_CONSIDER_THRESHOLD (0.3)
+- `PreferenceProfile.for_agent(agent_id:)`: universal entry point, checks mesh cache then falls back to local resolve
+- Mesh-received preference caching: `store_mesh_profile`, `cached_mesh_profile`, `clear_mesh_cache` with configurable TTL (default 1 hour)
+- Personality compatibility scoring via lex-agentic-self when available (graceful degradation when not loaded)
+- `handle_preference_response` now caches received profiles for future `for_agent` lookups
+- `dispatch_preference_message` forwards `responding_agent_id` for correct cache keying
+
 ## [0.3.4] - 2026-03-24
 
 ### Fixed

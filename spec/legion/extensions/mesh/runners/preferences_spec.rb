@@ -199,11 +199,11 @@ RSpec.describe Legion::Extensions::Mesh::Runners::Preferences do
       pending_req = runner.send(:pending_requests)
       pending_req.register(
         correlation_id: 'corr-cache',
-        callback: ->(profile) { }
+        callback:       ->(profile) {}
       )
       runner.handle_preference_response(
-        correlation_id: 'corr-cache',
-        profile: { verbosity: :concise, tone: :casual },
+        correlation_id:      'corr-cache',
+        profile:             { verbosity: :concise, tone: :casual },
         responding_agent_id: 'agent-42'
       )
       cached = Legion::Extensions::Mesh::Helpers::PreferenceProfile.cached_mesh_profile(
@@ -225,7 +225,7 @@ RSpec.describe Legion::Extensions::Mesh::Runners::Preferences do
     context 'with personality module available' do
       let(:personality_runner) do
         Module.new do
-          def personality_compatibility(other_profile:, **)
+          def personality_compatibility(**)
             { compatibility: 0.82, interpretation: :compatible }
           end
 
@@ -246,9 +246,9 @@ RSpec.describe Legion::Extensions::Mesh::Runners::Preferences do
 
       it 'returns compatibility score when personality data exists' do
         Legion::Extensions::Mesh::Helpers::PreferenceProfile.store_mesh_profile(
-          agent_id: 'agent-42',
-          profile: {
-            verbosity: :concise,
+          agent_id:        'agent-42',
+          profile:         {
+            verbosity:   :concise,
             personality: { openness: 0.8, conscientiousness: 0.6 }
           },
           source_agent_id: 'agent-42'

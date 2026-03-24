@@ -33,9 +33,7 @@ module Legion
           def handle_preference_query(requesting_agent_id: nil, **)
             if trust_available? && requesting_agent_id
               trust_result = check_requester_trust(requesting_agent_id)
-              if trust_result == :denied
-                return { success: false, reason: :insufficient_trust, responding_agent_id: local_agent_id }
-              end
+              return { success: false, reason: :insufficient_trust, responding_agent_id: local_agent_id } if trust_result == :denied
             end
 
             owner_id = local_agent_id
@@ -126,7 +124,7 @@ module Legion
           end
 
           def default_preference_callback(target_agent_id:)
-            lambda do |profile|
+            lambda do |_profile|
               log_debug("[mesh] received and cached preferences for #{target_agent_id}")
             end
           end

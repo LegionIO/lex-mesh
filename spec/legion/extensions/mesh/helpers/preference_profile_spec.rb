@@ -108,8 +108,8 @@ RSpec.describe Legion::Extensions::Mesh::Helpers::PreferenceProfile do
   describe '.store_mesh_profile' do
     it 'stores a profile with mesh_transfer origin' do
       result = described_class.store_mesh_profile(
-        agent_id: 'agent-42',
-        profile:  { verbosity: :concise, tone: :casual },
+        agent_id:        'agent-42',
+        profile:         { verbosity: :concise, tone: :casual },
         source_agent_id: 'agent-42'
       )
       expect(result[:stored]).to be true
@@ -125,8 +125,8 @@ RSpec.describe Legion::Extensions::Mesh::Helpers::PreferenceProfile do
 
     it 'returns cached profile after store' do
       described_class.store_mesh_profile(
-        agent_id: 'agent-42',
-        profile:  { verbosity: :concise, tone: :casual },
+        agent_id:        'agent-42',
+        profile:         { verbosity: :concise, tone: :casual },
         source_agent_id: 'agent-42'
       )
       result = described_class.cached_mesh_profile(agent_id: 'agent-42')
@@ -136,8 +136,8 @@ RSpec.describe Legion::Extensions::Mesh::Helpers::PreferenceProfile do
 
     it 'returns nil for expired cache entries' do
       described_class.store_mesh_profile(
-        agent_id: 'agent-42',
-        profile:  { verbosity: :concise },
+        agent_id:        'agent-42',
+        profile:         { verbosity: :concise },
         source_agent_id: 'agent-42'
       )
       # Expire the entry by manipulating the cache timestamp
@@ -160,8 +160,8 @@ RSpec.describe Legion::Extensions::Mesh::Helpers::PreferenceProfile do
 
     it 'returns cached mesh profile when available' do
       described_class.store_mesh_profile(
-        agent_id: 'agent-42',
-        profile:  { verbosity: :concise, tone: :formal },
+        agent_id:        'agent-42',
+        profile:         { verbosity: :concise, tone: :formal },
         source_agent_id: 'agent-42'
       )
       result = described_class.for_agent(agent_id: 'agent-42')
@@ -171,8 +171,8 @@ RSpec.describe Legion::Extensions::Mesh::Helpers::PreferenceProfile do
 
     it 'falls back to local when mesh cache is expired' do
       described_class.store_mesh_profile(
-        agent_id: 'agent-42',
-        profile:  { verbosity: :concise },
+        agent_id:        'agent-42',
+        profile:         { verbosity: :concise },
         source_agent_id: 'agent-42'
       )
       cache = described_class.instance_variable_get(:@mesh_cache)
