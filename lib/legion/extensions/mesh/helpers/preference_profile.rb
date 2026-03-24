@@ -121,6 +121,55 @@ module Legion
             lines.join(' ')
           end
 
+          MESH_CACHE_TTL = 3600 # 1 hour default
+
+          def store_mesh_profile(agent_id:, profile:, source_agent_id:)
+            @mesh_cache ||= {}
+            @mesh_cache[agent_id.to_s] = {
+              profile:         profile,
+              source_agent_id: source_agent_id,
+              origin:          :mesh_transfer,
+              cached_at:       Time.now
+            }
+
+            if memory_available?
+              store_preference(
+                owner_id: agent_id,
+                domain:   'mesh_profile',
+                value:    profile.to_s,
+                source:   'mesh_transfer'
+              )
+            end
+
+            { stored: true, agent_id: agent_id, origin: :mesh_transfer }
+          rescue StandardError => e
+            { stored: false, error: e.message }
+          end
+
+          def cached_mesh_profile(agent_id:, ttl: MESH_CACHE_TTL)
+            @mesh_cache ||= {}
+            entry = @mesh_cache[agent_id.to_s]
+            return nil unless entry
+
+            if Time.now - entry[:cached_at] > ttl
+              @mesh_cache.delete(agent_id.to_s)
+              return nil
+            end
+
+            entry[:profile]
+          rescue StandardError
+            nil
+          end
+
+          def clear_mesh_cache(agent_id: nil)
+            @mesh_cache ||= {}
+            if agent_id
+              @mesh_cache.delete(agent_id.to_s)
+            else
+              @mesh_cache.clear
+            end
+          end
+
           def memory_available?
             defined?(Legion::Extensions::Memory::Runners::Traces)
           end

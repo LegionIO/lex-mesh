@@ -105,6 +105,49 @@ RSpec.describe Legion::Extensions::Mesh::Helpers::PreferenceProfile do
     end
   end
 
+  describe '.store_mesh_profile' do
+    it 'stores a profile with mesh_transfer origin' do
+      result = described_class.store_mesh_profile(
+        agent_id: 'agent-42',
+        profile:  { verbosity: :concise, tone: :casual },
+        source_agent_id: 'agent-42'
+      )
+      expect(result[:stored]).to be true
+      expect(result[:origin]).to eq(:mesh_transfer)
+    end
+  end
+
+  describe '.cached_mesh_profile' do
+    it 'returns nil when no cached profile exists' do
+      result = described_class.cached_mesh_profile(agent_id: 'agent-unknown')
+      expect(result).to be_nil
+    end
+
+    it 'returns cached profile after store' do
+      described_class.store_mesh_profile(
+        agent_id: 'agent-42',
+        profile:  { verbosity: :concise, tone: :casual },
+        source_agent_id: 'agent-42'
+      )
+      result = described_class.cached_mesh_profile(agent_id: 'agent-42')
+      expect(result).to be_a(Hash)
+      expect(result[:verbosity]).to eq(:concise)
+    end
+
+    it 'returns nil for expired cache entries' do
+      described_class.store_mesh_profile(
+        agent_id: 'agent-42',
+        profile:  { verbosity: :concise },
+        source_agent_id: 'agent-42'
+      )
+      # Expire the entry by manipulating the cache timestamp
+      cache = described_class.instance_variable_get(:@mesh_cache)
+      cache['agent-42'][:cached_at] = Time.now - 7200 if cache&.dig('agent-42')
+      result = described_class.cached_mesh_profile(agent_id: 'agent-42', ttl: 3600)
+      expect(result).to be_nil
+    end
+  end
+
   describe '.preference_instructions' do
     it 'generates natural language prompt instructions from profile' do
       profile = {
