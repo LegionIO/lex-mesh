@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.3.4] - 2026-03-24
+
+### Fixed
+- `Preference#queue_name` and `#bind_routing_key` now use symbol keys (`Legion::Settings[:client][:name]`) instead of string keys, fixing a `NoMethodError: undefined method '[]' for nil` crash that prevented `PreferenceListener` from starting on every boot (fixes #2)
+- Fixed `preference_spec.rb` stub to use symbol keys matching production `Legion::Settings` behavior
+
 ## [0.3.3] - 2026-03-24
 
 ### Fixed

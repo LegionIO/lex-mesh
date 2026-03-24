@@ -11,12 +11,12 @@ module Legion
             end
 
             def queue_name
-              agent = @agent_id || Legion::Settings['client']['name']
+              agent = @agent_id || Legion::Settings[:client][:name]
               "agent.#{agent}.preferences"
             end
 
             def bind_routing_key
-              agent = @agent_id || Legion::Settings['client']['name']
+              agent = @agent_id || Legion::Settings[:client][:name]
               "agent.#{agent}.preferences"
             end
           end

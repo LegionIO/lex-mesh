@@ -43,7 +43,7 @@ RSpec.describe Legion::Extensions::Mesh::Transport::Queues::Preference do
     subject(:queue) { described_class.allocate.tap { |q| q.instance_variable_set(:@agent_id, nil) } }
 
     before do
-      stub_const('Legion::Settings', { 'client' => { 'name' => 'my-agent' } })
+      stub_const('Legion::Settings', { client: { name: 'my-agent' } })
     end
 
     describe '#queue_name' do
