@@ -170,6 +170,35 @@ module Legion
             end
           end
 
+          def for_agent(agent_id:, ttl: MESH_CACHE_TTL)
+            cached = cached_mesh_profile(agent_id: agent_id, ttl: ttl)
+            if cached
+              return {
+                source:        :mesh_cache,
+                profile:       cached,
+                agent_id:      agent_id,
+                compatibility: compute_compatibility(cached)
+              }
+            end
+
+            profile = resolve(owner_id: agent_id)
+
+            {
+              source:        :local,
+              profile:       profile,
+              agent_id:      agent_id,
+              compatibility: compute_compatibility(profile)
+            }
+          rescue StandardError => e
+            {
+              source:        :local,
+              profile:       DEFAULTS.dup,
+              agent_id:      agent_id,
+              compatibility: nil,
+              error:         e.message
+            }
+          end
+
           def memory_available?
             defined?(Legion::Extensions::Memory::Runners::Traces)
           end
@@ -199,6 +228,23 @@ module Legion
             { domain: match[1], value: match[2], source: match[3], confidence: trace[:confidence] }
           rescue StandardError
             nil
+          end
+
+          def compute_compatibility(profile)
+            return nil unless profile.is_a?(Hash) && profile[:personality]
+            return nil unless personality_available?
+
+            personality_runner = Object.new.extend(
+              Legion::Extensions::Agentic::Self::Personality::Runners::Personality
+            )
+            result = personality_runner.personality_compatibility(other_profile: profile[:personality])
+            { score: result[:compatibility], interpretation: result[:interpretation] }
+          rescue StandardError
+            nil
+          end
+
+          def personality_available?
+            defined?(Legion::Extensions::Agentic::Self::Personality::Runners::Personality)
           end
         end
       end

@@ -148,6 +148,45 @@ RSpec.describe Legion::Extensions::Mesh::Helpers::PreferenceProfile do
     end
   end
 
+  describe '.for_agent' do
+    before { described_class.clear_mesh_cache }
+
+    it 'returns local profile when no mesh cache exists' do
+      result = described_class.for_agent(agent_id: 'agent-99')
+      expect(result[:source]).to eq(:local)
+      expect(result[:profile]).to be_a(Hash)
+      expect(result[:profile][:verbosity]).to eq(:normal)
+    end
+
+    it 'returns cached mesh profile when available' do
+      described_class.store_mesh_profile(
+        agent_id: 'agent-42',
+        profile:  { verbosity: :concise, tone: :formal },
+        source_agent_id: 'agent-42'
+      )
+      result = described_class.for_agent(agent_id: 'agent-42')
+      expect(result[:source]).to eq(:mesh_cache)
+      expect(result[:profile][:verbosity]).to eq(:concise)
+    end
+
+    it 'falls back to local when mesh cache is expired' do
+      described_class.store_mesh_profile(
+        agent_id: 'agent-42',
+        profile:  { verbosity: :concise },
+        source_agent_id: 'agent-42'
+      )
+      cache = described_class.instance_variable_get(:@mesh_cache)
+      cache['agent-42'][:cached_at] = Time.now - 7200
+      result = described_class.for_agent(agent_id: 'agent-42')
+      expect(result[:source]).to eq(:local)
+    end
+
+    it 'includes compatibility when available' do
+      result = described_class.for_agent(agent_id: 'agent-99')
+      expect(result).to have_key(:compatibility)
+    end
+  end
+
   describe '.preference_instructions' do
     it 'generates natural language prompt instructions from profile' do
       profile = {
