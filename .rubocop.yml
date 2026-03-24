@@ -46,5 +46,8 @@ Style/FrozenStringLiteralComment:
   Enabled: true
   EnforcedStyle: always
 
+Metrics/ParameterLists:
+  CountKeywordArgs: false
+
 Naming/FileName:
   Enabled: false

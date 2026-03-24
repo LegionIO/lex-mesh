@@ -239,6 +239,40 @@ RSpec.describe Legion::Extensions::Mesh::Helpers::Registry do
       end
     end
 
+    describe 'hop-count enforcement' do
+      it 'delivers normally when hops is below MAX_HOPS' do
+        result = registry.route_message(from: 'sender', to: 'a1', pattern: :unicast, hops: 0)
+        expect(result[:delivered_to]).to eq(['a1'])
+        expect(result[:rejected]).to be_nil
+      end
+
+      it 'rejects when hops equals MAX_HOPS' do
+        result = registry.route_message(from: 'sender', to: 'a1', pattern: :unicast,
+                                        hops: Legion::Extensions::Mesh::Helpers::Topology::MAX_HOPS)
+        expect(result[:delivered_to]).to eq([])
+        expect(result[:rejected]).to eq(:max_hops_exceeded)
+      end
+
+      it 'rejects when hops exceeds MAX_HOPS' do
+        result = registry.route_message(from: 'sender', to: 'a1', pattern: :unicast,
+                                        hops: Legion::Extensions::Mesh::Helpers::Topology::MAX_HOPS + 1)
+        expect(result[:delivered_to]).to eq([])
+        expect(result[:rejected]).to eq(:max_hops_exceeded)
+      end
+
+      it 'includes :max_hops_exceeded in the rejected field' do
+        result = registry.route_message(from: 'sender', pattern: :broadcast,
+                                        hops: Legion::Extensions::Mesh::Helpers::Topology::MAX_HOPS)
+        expect(result[:rejected]).to eq(:max_hops_exceeded)
+      end
+
+      it 'defaults hops to 0 for backward compatibility' do
+        result = registry.route_message(from: 'sender', to: 'a1', pattern: :unicast)
+        expect(result[:delivered_to]).to eq(['a1'])
+        expect(result[:rejected]).to be_nil
+      end
+    end
+
     describe 'message buffer cap' do
       it 'shifts old messages when buffer exceeds 1000' do
         1001.times { |i| registry.route_message(from: 'sender', to: "a#{i}", pattern: :unicast) }

@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.3.2] - 2026-03-24
+
+### Added
+- `Registry#route_message` now accepts `hops: 0` keyword parameter
+- Enforce `MAX_HOPS` (3) in `route_message`: messages with `hops >= MAX_HOPS` are rejected immediately with `delivered_to: []` and `rejected: :max_hops_exceeded`
+- `hops` field stored on forwarded messages for downstream hop tracking
+- 5 new specs for hop-count enforcement in `registry_spec.rb`
+- `spec/legion/extensions/mesh/transport/queues/gossip_spec.rb` with 3 examples covering queue name, exchange, and routing key
+- `.rubocop.yml`: `Metrics/ParameterLists` now sets `CountKeywordArgs: false`; removed 3 now-redundant inline disable comments from delegation, mesh, and task_request runners
+
 ## [0.3.1] - 2026-03-22
 
 ### Changed

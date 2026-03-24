@@ -9,7 +9,7 @@ module Legion
         module Delegation
           include Legion::Extensions::Helpers::Lex if defined?(Legion::Extensions::Helpers::Lex)
 
-          def delegate(from:, to:, task_context:, consent_level: :execute, parent_delegation_id: nil, **) # rubocop:disable Metrics/ParameterLists
+          def delegate(from:, to:, task_context:, consent_level: :execute, parent_delegation_id: nil, **)
             result = delegation_tracker.create(
               from:                 from,
               to:                   to,

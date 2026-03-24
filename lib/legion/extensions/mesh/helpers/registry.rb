@@ -50,10 +50,16 @@ module Legion
             agent_ids.filter_map { |id| @agents[id] }
           end
 
-          def route_message(from:, to: nil, capability: nil, pattern: :unicast, payload: {})
+          def route_message(from:, to: nil, capability: nil, pattern: :unicast, payload: {}, hops: 0)
+            if hops >= Topology::MAX_HOPS
+              return { from: from, to: to, capability: capability, pattern: pattern,
+                       payload: payload, hops: hops, at: Time.now.utc,
+                       delivered_to: [], rejected: :max_hops_exceeded }
+            end
+
             msg = {
               from: from, to: to, capability: capability,
-              pattern: pattern, payload: payload, at: Time.now.utc
+              pattern: pattern, payload: payload, hops: hops, at: Time.now.utc
             }
 
             targets = case pattern

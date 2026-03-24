@@ -15,7 +15,7 @@ module Legion
 
           DEFAULT_TIMEOUT = 30
 
-          def request_task(from:, to:, task:, payload:, timeout: DEFAULT_TIMEOUT, consent_level: :execute, **) # rubocop:disable Metrics/ParameterLists
+          def request_task(from:, to:, task:, payload:, timeout: DEFAULT_TIMEOUT, consent_level: :execute, **)
             target_id = resolve_target(to)
             return { success: false, reason: :no_agent_found, requested: to } unless target_id
 
