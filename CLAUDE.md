@@ -11,7 +11,7 @@ Agent-to-agent mesh communication layer for the LegionIO cognitive architecture.
 ## Gem Info
 
 - **Gem name**: `lex-mesh`
-- **Version**: `0.3.0`
+- **Version**: `0.3.2`
 - **Module**: `Legion::Extensions::Mesh`
 - **Ruby**: `>= 3.4`
 - **License**: MIT
@@ -186,8 +186,9 @@ Domain-agnostic preference resolution from multiple sources. Lives in lex-mesh f
 ## Development Notes
 
 - `online_agents` returns agents with `status: :online`; `SilenceWatchdog` actor marks agents `:offline` when `last_seen` exceeds `MESH_SILENCE_TIMEOUT` (30s)
-- `MAX_HOPS` is defined but not yet enforced in the routing logic
+- `MAX_HOPS` is enforced in `Registry#route_message`: accepts a `hops:` parameter (default 0) and rejects with `{ rejected: :max_hops_exceeded }` when `hops >= Topology::MAX_HOPS (3)`, including `hops: hops` in the message hash
 - The `delivered_to` field in sent message result contains agent_id strings, not agent records
+- Gossip queue spec added (3 specs covering queue_name, exchange, and routing_key)
 
 ---
 
