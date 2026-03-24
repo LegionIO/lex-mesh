@@ -30,7 +30,14 @@ module Legion
             { success: true, source: :local_default, profile: default_profile, error: e.message }
           end
 
-          def handle_preference_query(**)
+          def handle_preference_query(requesting_agent_id: nil, **)
+            if trust_available? && requesting_agent_id
+              trust_result = check_requester_trust(requesting_agent_id)
+              if trust_result == :denied
+                return { success: false, reason: :insufficient_trust, responding_agent_id: local_agent_id }
+              end
+            end
+
             owner_id = local_agent_id
             profile = Helpers::PreferenceProfile.resolve(owner_id: owner_id)
 
@@ -113,6 +120,23 @@ module Legion
             lambda do |profile|
               log_debug("[mesh] received preferences for #{target_agent_id}: #{profile.keys.join(', ')}")
             end
+          end
+
+          def trust_available?
+            defined?(Legion::Extensions::Agentic::Social::Trust::Runners::Trust)
+          end
+
+          def check_requester_trust(agent_id)
+            trust_mod = Legion::Extensions::Agentic::Social::Trust::Runners::Trust
+            evaluator = Object.new.extend(trust_mod)
+            result = evaluator.get_trust(agent_id: agent_id, domain: :general)
+
+            return :allowed unless result[:found]
+
+            composite = result.dig(:trust, :composite) || 0.0
+            composite >= Helpers::Topology::TRUST_CONSIDER_THRESHOLD ? :allowed : :denied
+          rescue StandardError
+            :allowed
           end
 
           def log_debug(msg)

@@ -65,6 +65,41 @@ RSpec.describe Legion::Extensions::Mesh::Runners::Preferences do
       result = runner.handle_preference_query(requesting_agent_id: 'agent-1')
       expect(result[:profile]).to have_key(:verbosity)
     end
+
+    context 'with trust module available' do
+      let(:trust_runner) do
+        Module.new do
+          def get_trust(agent_id:, domain: :general, **)
+            case agent_id
+            when 'trusted-agent' then { found: true, trust: { composite: 0.8 } }
+            when 'untrusted-agent' then { found: true, trust: { composite: 0.1 } }
+            else { found: false, agent_id: agent_id, domain: domain }
+            end
+          end
+        end
+      end
+
+      before do
+        stub_const('Legion::Extensions::Agentic::Social::Trust::Runners::Trust', trust_runner)
+      end
+
+      it 'returns profile for trusted agents' do
+        result = runner.handle_preference_query(requesting_agent_id: 'trusted-agent')
+        expect(result[:success]).to be true
+        expect(result[:profile]).to be_a(Hash)
+      end
+
+      it 'refuses preferences for untrusted agents' do
+        result = runner.handle_preference_query(requesting_agent_id: 'untrusted-agent')
+        expect(result[:success]).to be false
+        expect(result[:reason]).to eq(:insufficient_trust)
+      end
+
+      it 'returns profile for unknown agents (trust not found defaults to open)' do
+        result = runner.handle_preference_query(requesting_agent_id: 'unknown-agent')
+        expect(result[:success]).to be true
+      end
+    end
   end
 
   describe '#handle_preference_response' do
