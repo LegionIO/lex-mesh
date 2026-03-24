@@ -160,6 +160,22 @@ RSpec.describe Legion::Extensions::Mesh::Runners::Preferences do
         )
         expect(result[:resolved]).to be false
       end
+
+      it 'passes responding_agent_id for mesh caching' do
+        pending_req = runner.send(:pending_requests)
+        pending_req.register(correlation_id: 'corr-dispatch', callback: ->(_p) {})
+        runner.dispatch_preference_message(
+          type:                'preference_response',
+          correlation_id:      'corr-dispatch',
+          profile:             { verbosity: :terse },
+          responding_agent_id: 'agent-77'
+        )
+        cached = Legion::Extensions::Mesh::Helpers::PreferenceProfile.cached_mesh_profile(
+          agent_id: 'agent-77'
+        )
+        expect(cached).to be_a(Hash)
+        expect(cached[:verbosity]).to eq(:terse)
+      end
     end
 
     context 'with unknown type' do

@@ -72,8 +72,9 @@ module Legion
               profile
             when 'preference_response'
               handle_preference_response(
-                correlation_id: msg[:correlation_id],
-                profile:        msg[:profile] || {}
+                correlation_id:      msg[:correlation_id],
+                profile:             msg[:profile] || {},
+                responding_agent_id: msg[:responding_agent_id]
               )
             else
               { success: false, error: "unknown preference message type: #{type}" }
