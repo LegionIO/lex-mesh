@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.3.3] - 2026-03-24
+
+### Fixed
+- `Runners::Preferences` now includes `Helpers::Lex` so instance methods are available as module methods (fixes `undefined method 'expire_pending_requests'` from PendingExpiry actor)
+- `log_debug` in Preferences uses tagged `log` helper instead of bare `Legion::Logging`
+
 ## [0.3.2] - 2026-03-24
 
 ### Added

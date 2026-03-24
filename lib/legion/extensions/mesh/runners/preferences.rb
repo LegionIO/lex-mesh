@@ -7,6 +7,9 @@ module Legion
     module Mesh
       module Runners
         module Preferences
+          include Legion::Extensions::Helpers::Lex if Legion::Extensions.const_defined?(:Helpers) &&
+                                                      Legion::Extensions::Helpers.const_defined?(:Lex)
+
           def query_preferences(target_agent_id:, domains: nil, callback: nil, ttl: 5, **)
             default_profile = Helpers::PreferenceProfile.resolve(owner_id: target_agent_id)
 
@@ -113,7 +116,7 @@ module Legion
           end
 
           def log_debug(msg)
-            Legion::Logging.debug(msg) if defined?(Legion::Logging)
+            log.debug(msg)
           end
         end
       end
