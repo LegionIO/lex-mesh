@@ -200,11 +200,11 @@ module Legion
           end
 
           def memory_available?
-            defined?(Legion::Extensions::Memory::Runners::Traces)
+            defined?(Legion::Extensions::Agentic::Memory::Trace::Runners::Traces)
           end
 
           def memory_runner
-            Object.new.extend(Legion::Extensions::Memory::Runners::Traces)
+            Object.new.extend(Legion::Extensions::Agentic::Memory::Trace::Runners::Traces)
           end
 
           def fetch_preference_traces(owner_id:)

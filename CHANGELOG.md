@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.4.1] - 2026-03-26
+
+### Changed
+- Migrate PreferenceProfile from `Legion::Extensions::Memory::Runners::Traces` to `Legion::Extensions::Agentic::Memory::Trace::Runners::Traces`
+
 ## [0.4.0] - 2026-03-24
 
 ### Added

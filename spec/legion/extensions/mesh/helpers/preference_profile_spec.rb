@@ -2,19 +2,23 @@
 
 require 'spec_helper'
 
-# Stub lex-memory if not loaded
-unless defined?(Legion::Extensions::Memory::Runners::Traces)
+# Stub lex-agentic-memory if not loaded
+unless defined?(Legion::Extensions::Agentic::Memory::Trace::Runners::Traces)
   module Legion
     module Extensions
-      module Memory
-        module Runners
-          module Traces
-            def retrieve_by_domain(**)
-              []
-            end
+      module Agentic
+        module Memory
+          module Trace
+            module Runners
+              module Traces
+                def retrieve_by_domain(**)
+                  []
+                end
 
-            def store_trace(**)
-              { stored: true }
+                def store_trace(**)
+                  { stored: true }
+                end
+              end
             end
           end
         end
