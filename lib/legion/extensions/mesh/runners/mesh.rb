@@ -72,6 +72,7 @@ module Legion
             end
 
             @gossip_round = (@gossip_round || 0) + 1
+            peer_table.expire
             publish_gossip_message(peers)
             { success: true, peers_broadcast: peers.size, gossip_round: @gossip_round }
           rescue StandardError => e
@@ -81,13 +82,22 @@ module Legion
           def merge_gossip(incoming_peers:, sender: nil, **) # rubocop:disable Lint/UnusedMethodArgument
             registry = mesh_registry
             merged = 0
+            conflict_agents = []
+            local = local_node_name
+
+            peer_table.upsert(sender) if sender && sender != local
 
             incoming_peers.each do |peer|
               peer = peer.transform_keys(&:to_sym)
-              next if peer[:node] == local_node_name
+              next if peer[:node] == local
 
-              local = registry.agents[peer[:agent_id]]
-              if local.nil?
+              if sender && sender != local && peer[:node] == local
+                conflict_agents << peer[:agent_id]
+                next
+              end
+
+              local_agent = registry.agents[peer[:agent_id]]
+              if local_agent.nil?
                 registry.register_agent(
                   peer[:agent_id],
                   capabilities: (peer[:capabilities] || []).map(&:to_sym),
@@ -96,11 +106,16 @@ module Legion
                 )
                 registry.agents[peer[:agent_id]][:generation] = peer[:generation] || 1
                 merged += 1
-              elsif (peer[:generation] || 0) > (local[:generation] || 0)
-                local.merge!(peer.slice(:capabilities, :status, :generation, :last_seen))
-                local[:capabilities] = (local[:capabilities] || []).map(&:to_sym)
+              elsif (peer[:generation] || 0) > (local_agent[:generation] || 0)
+                local_agent.merge!(peer.slice(:capabilities, :status, :generation, :last_seen))
+                local_agent[:capabilities] = (local_agent[:capabilities] || []).map(&:to_sym)
                 merged += 1
               end
+            end
+
+            unless conflict_agents.empty?
+              log.warn "[mesh] split-brain: node=#{sender} claims #{conflict_agents.size} local agents"
+              publish_conflict_message(detecting_node: local, claiming_node: sender, agents: conflict_agents)
             end
 
             { success: true, merged: merged, total_peers: incoming_peers.size }
@@ -131,6 +146,18 @@ module Legion
             ).publish
           end
 
+          def publish_conflict_message(detecting_node:, claiming_node:, agents:)
+            return unless defined?(Legion::Extensions::Mesh::Transport::Messages::MeshConflict)
+
+            Legion::Extensions::Mesh::Transport::Messages::MeshConflict.new(
+              detecting_node: detecting_node,
+              claiming_node:  claiming_node,
+              agents:         agents
+            ).publish
+          rescue StandardError => e
+            log.warn "[mesh] failed to publish conflict signal: #{e.message}"
+          end
+
           def gossip_max_peers
             settings = Legion::Settings.dig(:mesh, :gossip)
             (settings.is_a?(Hash) ? settings[:max_peers_per_message] : nil) || 100
@@ -146,6 +173,10 @@ module Legion
 
           def mesh_registry
             @mesh_registry ||= Helpers::Registry.new
+          end
+
+          def peer_table
+            @peer_table ||= Helpers::PeerTable.new
           end
         end
       end
