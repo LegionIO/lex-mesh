@@ -5,35 +5,48 @@ module Legion
     module Mesh
       module Helpers
         class PeerTable
-          DEFAULT_TTL = 90 # seconds: covers 3 missed gossip cycles (15s each) with buffer
+          DEFAULT_TTL = 60 # seconds
 
           def initialize(ttl: DEFAULT_TTL)
-            @ttl   = ttl
+            @ttl = ttl
             @peers = {}
+            @mutex = Mutex.new
           end
 
-          def upsert(node_name, seen_at: Time.now.utc)
-            @peers[node_name] = { node: node_name, last_seen: seen_at }
+          def upsert(agent_id, data = {})
+            @mutex.synchronize do
+              @peers[agent_id] = data.merge(last_seen_at: Time.now.utc)
+            end
+          end
+
+          def get(agent_id)
+            @mutex.synchronize { @peers[agent_id] }
+          end
+
+          def all
+            @mutex.synchronize { @peers.dup }
           end
 
           def expire
             cutoff = Time.now.utc - @ttl
             expired = []
-            @peers.each { |node, entry| expired << node if entry[:last_seen] < cutoff }
-            expired.each { |node| @peers.delete(node) }
+            @mutex.synchronize do
+              @peers.each do |id, entry|
+                next unless entry[:last_seen_at] < cutoff
+
+                expired << id
+              end
+              expired.each { |id| @peers.delete(id) }
+            end
             expired
           end
 
-          def known_nodes
-            @peers.keys
-          end
-
-          def include?(node_name)
-            @peers.key?(node_name)
-          end
-
           def count
-            @peers.size
+            @mutex.synchronize { @peers.size }
+          end
+
+          def remove(agent_id)
+            @mutex.synchronize { @peers.delete(agent_id) }
           end
         end
       end

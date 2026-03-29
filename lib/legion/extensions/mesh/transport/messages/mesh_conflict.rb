@@ -16,11 +16,11 @@ module Legion
 
             def message
               {
-                type:           'mesh_conflict',
-                detecting_node: @options[:detecting_node],
-                claiming_node:  @options[:claiming_node],
-                agents:         @options[:agents] || [],
-                detected_at:    Time.now.to_s
+                type:             'mesh_conflict',
+                local_node:       @options[:local_node],
+                conflicting_node: @options[:conflicting_node],
+                conflict_agents:  @options[:conflict_agents] || [],
+                detected_at:      Time.now.to_s
               }
             end
 

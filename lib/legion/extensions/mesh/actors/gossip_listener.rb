@@ -12,7 +12,7 @@ module Legion
           end
 
           def runner_function
-            'merge_gossip'
+            'dispatch_gossip_message'
           end
 
           def check_subtask?
@@ -24,7 +24,7 @@ module Legion
           end
 
           def use_runner?
-            true
+            false
           end
 
           def queue

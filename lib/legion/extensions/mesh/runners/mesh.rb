@@ -65,6 +65,7 @@ module Legion
           end
 
           def publish_gossip(**)
+            peer_table.expire
             registry = mesh_registry
             peers = registry.all_agents.first(gossip_max_peers).map do |agent|
               agent.slice(:agent_id, :capabilities, :node, :source, :status, :generation,
@@ -72,7 +73,6 @@ module Legion
             end
 
             @gossip_round = (@gossip_round || 0) + 1
-            peer_table.expire
             publish_gossip_message(peers)
             { success: true, peers_broadcast: peers.size, gossip_round: @gossip_round }
           rescue StandardError => e
@@ -83,21 +83,19 @@ module Legion
             registry = mesh_registry
             merged = 0
             conflict_agents = []
-            local = local_node_name
-
-            peer_table.upsert(sender) if sender && sender != local
 
             incoming_peers.each do |peer|
               peer = peer.transform_keys(&:to_sym)
-              next if peer[:node] == local
 
-              if sender && sender != local && peer[:node] == local
-                conflict_agents << peer[:agent_id]
+              if peer[:node] == local_node_name
+                conflict_agents << peer[:agent_id] if sender && sender != local_node_name
                 next
               end
 
-              local_agent = registry.agents[peer[:agent_id]]
-              if local_agent.nil?
+              peer_table.upsert(peer[:agent_id], peer)
+
+              local = registry.agents[peer[:agent_id]]
+              if local.nil?
                 registry.register_agent(
                   peer[:agent_id],
                   capabilities: (peer[:capabilities] || []).map(&:to_sym),
@@ -106,21 +104,30 @@ module Legion
                 )
                 registry.agents[peer[:agent_id]][:generation] = peer[:generation] || 1
                 merged += 1
-              elsif (peer[:generation] || 0) > (local_agent[:generation] || 0)
-                local_agent.merge!(peer.slice(:capabilities, :status, :generation, :last_seen))
-                local_agent[:capabilities] = (local_agent[:capabilities] || []).map(&:to_sym)
+              elsif (peer[:generation] || 0) > (local[:generation] || 0)
+                local.merge!(peer.slice(:capabilities, :status, :generation, :last_seen))
+                local[:capabilities] = (local[:capabilities] || []).map(&:to_sym)
                 merged += 1
               end
             end
 
-            unless conflict_agents.empty?
-              log.warn "[mesh] split-brain: node=#{sender} claims #{conflict_agents.size} local agents"
-              publish_conflict_message(detecting_node: local, claiming_node: sender, agents: conflict_agents)
+            if conflict_agents.any?
+              publish_mesh_conflict(local_node: local_node_name, conflicting_node: sender,
+                                    conflict_agents: conflict_agents)
             end
 
-            { success: true, merged: merged, total_peers: incoming_peers.size }
+            { success: true, merged: merged, total_peers: incoming_peers.size, conflicts: conflict_agents.size }
           rescue StandardError => e
             { success: false, reason: :error, message: e.message }
+          end
+
+          def dispatch_gossip_message(type: nil, sender: nil, peers: [], **)
+            case type
+            when 'mesh_gossip'
+              merge_gossip(incoming_peers: peers, sender: sender)
+            else
+              { success: false, error: "unknown gossip message type: #{type}" }
+            end
           end
 
           private
@@ -146,14 +153,15 @@ module Legion
             ).publish
           end
 
-          def publish_conflict_message(detecting_node:, claiming_node:, agents:)
+          def publish_mesh_conflict(local_node:, conflicting_node:, conflict_agents:)
             return unless defined?(Legion::Extensions::Mesh::Transport::Messages::MeshConflict)
 
             Legion::Extensions::Mesh::Transport::Messages::MeshConflict.new(
-              detecting_node: detecting_node,
-              claiming_node:  claiming_node,
-              agents:         agents
+              local_node:       local_node,
+              conflicting_node: conflicting_node,
+              conflict_agents:  conflict_agents
             ).publish
+            log.warn "[mesh] split-brain detected: node=#{conflicting_node} claims agents on #{local_node}: #{conflict_agents.join(',')}"
           rescue StandardError => e
             log.warn "[mesh] failed to publish conflict signal: #{e.message}"
           end
