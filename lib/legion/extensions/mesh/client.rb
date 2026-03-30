@@ -20,7 +20,7 @@ module Legion
 
         def initialize(**opts)
           @opts = opts
-          @mesh_registry = Helpers::Registry.new
+          @mesh_registry = Helpers::Registry.new # rubocop:disable Legion/Singleton/UseInstance
         end
 
         private

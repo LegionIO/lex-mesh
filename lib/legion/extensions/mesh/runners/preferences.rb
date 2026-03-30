@@ -7,8 +7,8 @@ module Legion
     module Mesh
       module Runners
         module Preferences
-          include Legion::Extensions::Helpers::Lex if Legion::Extensions.const_defined?(:Helpers) &&
-                                                      Legion::Extensions::Helpers.const_defined?(:Lex)
+          include Legion::Extensions::Helpers::Lex if Legion::Extensions.const_defined?(:Helpers, false) &&
+                                                      Legion::Extensions::Helpers.const_defined?(:Lex, false)
 
           def query_preferences(target_agent_id:, domains: nil, callback: nil, ttl: 5, **)
             default_profile = Helpers::PreferenceProfile.resolve(owner_id: target_agent_id)
@@ -96,7 +96,7 @@ module Legion
             else
               'unknown'
             end
-          rescue StandardError
+          rescue StandardError => _e
             'unknown'
           end
 
@@ -110,7 +110,7 @@ module Legion
               correlation_id:      msg[:correlation_id]
             ).publish
           rescue StandardError => e
-            log_debug("[mesh] failed to publish preference response: #{e.message}")
+            log.debug("[mesh] failed to publish preference response: #{e.message}")
           end
 
           def publish_preference_query(target_agent_id:, correlation_id:, domains:)
@@ -125,7 +125,7 @@ module Legion
 
           def default_preference_callback(target_agent_id:)
             lambda do |_profile|
-              log_debug("[mesh] received and cached preferences for #{target_agent_id}")
+              log.debug("[mesh] received and cached preferences for #{target_agent_id}")
             end
           end
 
@@ -138,11 +138,11 @@ module Legion
             evaluator = Object.new.extend(trust_mod)
             result = evaluator.get_trust(agent_id: agent_id, domain: :general)
 
-            return :allowed unless result[:found]
+            return :allowed unless result[:found] # rubocop:disable Legion/Extension/RunnerReturnHash
 
             composite = result.dig(:trust, :composite) || 0.0
             composite >= Helpers::Topology::TRUST_CONSIDER_THRESHOLD ? :allowed : :denied
-          rescue StandardError
+          rescue StandardError => _e
             :allowed
           end
 
