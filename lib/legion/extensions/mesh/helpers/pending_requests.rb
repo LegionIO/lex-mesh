@@ -21,7 +21,7 @@ module Legion
             end
           end
 
-          def resolve(correlation_id:, result:) # rubocop:disable Naming/PredicateMethod
+          def resolve(correlation_id:, result:)
             entry = @mutex.synchronize { @requests.delete(correlation_id) }
             return false unless entry
 

@@ -13,7 +13,7 @@ require 'legion/extensions/mesh/runners/preferences'
 require 'legion/extensions/mesh/runners/delegation'
 require 'legion/extensions/mesh/runners/task_request'
 
-if defined?(Legion::Transport)
+if Legion.const_defined?(:Transport, false)
   require 'legion/extensions/mesh/transport/messages/preference_query'
   require 'legion/extensions/mesh/transport/messages/preference_response'
   require 'legion/extensions/mesh/transport/messages/mesh_departure'
@@ -26,7 +26,7 @@ end
 module Legion
   module Extensions
     module Mesh
-      extend Legion::Extensions::Core if Legion::Extensions.const_defined? :Core
+      extend Legion::Extensions::Core if Legion::Extensions.const_defined? :Core, false
     end
   end
 end

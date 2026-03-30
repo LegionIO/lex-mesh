@@ -10,7 +10,7 @@ module Legion
   module Extensions
     module Mesh
       module Runners
-        module TaskRequest
+        module TaskRequest # rubocop:disable Legion/Extension/RunnerIncludeHelpers
           include Runners::Mesh
 
           DEFAULT_TIMEOUT = 30
@@ -65,10 +65,10 @@ module Legion
           private
 
           def resolve_target(to)
-            return to if mesh_registry.agents.key?(to)
+            return to if mesh_registry.agents.key?(to) # rubocop:disable Legion/Extension/RunnerReturnHash
 
             agents = mesh_registry.find_by_capability(to.to_sym)
-            return nil if agents.empty?
+            return nil if agents.empty? # rubocop:disable Legion/Extension/RunnerReturnHash
 
             online = agents.select { |a| a[:status] == :online }
             (online.empty? ? agents : online).sample[:agent_id]

@@ -103,7 +103,7 @@ module Legion
 
           def local_node_name
             Legion::Settings[:client][:name]
-          rescue StandardError
+          rescue StandardError => _e
             'unknown'
           end
         end

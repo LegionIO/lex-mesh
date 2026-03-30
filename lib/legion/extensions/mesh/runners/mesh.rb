@@ -5,8 +5,8 @@ module Legion
     module Mesh
       module Runners
         module Mesh
-          include Legion::Extensions::Helpers::Lex if Legion::Extensions.const_defined?(:Helpers) &&
-                                                      Legion::Extensions::Helpers.const_defined?(:Lex)
+          include Legion::Extensions::Helpers::Lex if Legion::Extensions.const_defined?(:Helpers, false) &&
+                                                      Legion::Extensions::Helpers.const_defined?(:Lex, false)
 
           def register(agent_id:, capabilities: [], endpoint: nil, **)
             mesh_registry.register_agent(agent_id, capabilities: capabilities, endpoint: endpoint)
@@ -169,18 +169,18 @@ module Legion
           def gossip_max_peers
             settings = Legion::Settings.dig(:mesh, :gossip)
             (settings.is_a?(Hash) ? settings[:max_peers_per_message] : nil) || 100
-          rescue StandardError
+          rescue StandardError => _e
             100
           end
 
           def local_node_name
             Legion::Settings[:client][:name]
-          rescue StandardError
+          rescue StandardError => _e
             'unknown'
           end
 
           def mesh_registry
-            @mesh_registry ||= Helpers::Registry.new
+            @mesh_registry ||= Helpers::Registry.new # rubocop:disable Legion/Singleton/UseInstance
           end
 
           def peer_table
