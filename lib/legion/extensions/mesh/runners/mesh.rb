@@ -156,7 +156,7 @@ module Legion
             log.warn "[mesh] failed to publish conflict signal: #{e.message}"
           end
 
-          def upsert_remote_peer(peer, registry) # rubocop:disable Naming/PredicateMethod
+          def upsert_remote_peer(peer, registry)
             peer_table.upsert(peer[:agent_id], peer)
             local = registry.agents[peer[:agent_id]]
             if local.nil?
@@ -179,11 +179,14 @@ module Legion
           end
 
           def parse_last_seen(value)
-            return Time.now.utc if value.nil?
-            return value if value.is_a?(Time)
-
-            Time.parse(value.to_s)
-          rescue ArgumentError
+            if value.nil?
+              Time.now.utc
+            elsif value.is_a?(Time)
+              value
+            else
+              Time.parse(value.to_s)
+            end
+          rescue ArgumentError => _e
             Time.now.utc
           end
 

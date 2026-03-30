@@ -63,7 +63,7 @@ RSpec.describe Legion::Extensions::Mesh::Helpers::PeerTable do
 
   describe 'thread safety' do
     it 'handles concurrent upserts without data corruption' do
-      threads = 10.times.map do |i|
+      threads = Array.new(10) do |i|
         Thread.new { table.upsert("agent-#{i}", { node: "node-#{i}" }) }
       end
       threads.each(&:join)

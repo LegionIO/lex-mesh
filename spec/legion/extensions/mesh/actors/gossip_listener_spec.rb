@@ -73,14 +73,14 @@ RSpec.describe Legion::Extensions::Mesh::Actor::GossipListener do
   end
 
   describe '#enabled?' do
-    context 'when Mesh runner and Transport are both defined' do
+    context 'when Mesh runner and Transport are both available' do
       it 'returns truthy' do
         stub_const('Legion::Transport', Module.new)
         expect(actor.enabled?).to be_truthy
       end
     end
 
-    context 'when Transport is not defined' do
+    context 'when Transport is not available' do
       it 'returns falsey' do
         hide_const('Legion::Transport')
         expect(actor.enabled?).to be_falsey
