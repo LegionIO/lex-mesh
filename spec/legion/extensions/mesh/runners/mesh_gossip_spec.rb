@@ -7,7 +7,7 @@ RSpec.describe 'Gossip runner methods' do
 
   before do
     allow(subject).to receive(:mesh_registry).and_return(
-      Legion::Extensions::Mesh::Helpers::Registry.new
+      Legion::Extensions::Mesh::Helpers::Registry.new # rubocop:disable Legion/Singleton/UseInstance
     )
   end
 

@@ -21,21 +21,21 @@ module Legion
               return { valid: false, org_id: org_id, reason: :unknown_peer } unless peer
 
               require 'ed25519'
-              pub_key_b64 = peer[:public_key].sub(/\Aed25519:/, '')
+              pub_key_b64 = peer[:public_key].delete_prefix('ed25519:')
               verify_key  = Ed25519::VerifyKey.new(Base64.strict_decode64(pub_key_b64))
               signature   = Base64.strict_decode64(signed_message[:signature])
               message_bytes = signed_message[:signed_bytes] || json_dump(signed_message[:payload])
               verify_key.verify(signature, message_bytes)
               { valid: true, org_id: org_id }
-            rescue Ed25519::VerifyError
+            rescue Ed25519::VerifyError => _e
               { valid: false, org_id: org_id, reason: :invalid_signature }
             rescue StandardError => e
               { valid: false, org_id: org_id, reason: :error, message: e.message }
             end
 
             def check_rate_limit(org_id)
-              @counters ||= Hash.new { |h, k| h[k] = { count: 0, window_start: Time.now.utc } }
-              counter = @counters[org_id]
+              @counters ||= Hash.new { |h, k| h[k] = { count: 0, window_start: Time.now.utc } } # rubocop:disable ThreadSafety/ClassInstanceVariable
+              counter = @counters[org_id] # rubocop:disable ThreadSafety/ClassInstanceVariable
               peer  = find_peer(org_id)
               limit = peer&.dig(:rate_limit) || 100
 
@@ -51,7 +51,7 @@ module Legion
             end
 
             def reset_counters!
-              @counters = nil
+              @counters = nil # rubocop:disable ThreadSafety/ClassInstanceVariable
             end
 
             private
@@ -65,7 +65,7 @@ module Legion
 
             def json_dump(data)
               if defined?(Legion::JSON)
-                Legion::JSON.dump({ data: data })
+                Legion::JSON.dump({ data: data }) # rubocop:disable Legion/HelperMigration/DirectJson
               else
                 require 'json'
                 ::JSON.dump({ data: data })

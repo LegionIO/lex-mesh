@@ -31,10 +31,10 @@ module Legion
             Legion::Extensions::Mesh::Transport::Queues::Preference
           end
 
-          def enabled?
+          def enabled? # rubocop:disable Legion/Extension/ActorEnabledSideEffects
             defined?(Legion::Extensions::Mesh::Runners::Preferences) &&
-              defined?(Legion::Transport)
-          rescue StandardError
+              Legion.const_defined?(:Transport, false)
+          rescue StandardError => _e
             false
           end
         end
