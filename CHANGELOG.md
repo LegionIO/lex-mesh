@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.4.3] - 2026-03-30
+
+### Added
+- `GossipListener` subscription actor wires incoming gossip messages to `merge_gossip` runner (8 specs)
+- `Helpers::PeerTable` with TTL expiry; `expire` results are now wired to `registry.unregister_agent` so timed-out peers are removed from the mesh (12 specs)
+- `Transport::Messages::MeshConflict` published to `mesh.conflict` when split-brain detected: a remote peer claims agents whose `node` field matches the local node name (8 specs)
+- Split-brain detection specs (4 examples) in `mesh_gossip_spec.rb`
+
+### Changed
+- Extracted `upsert_remote_peer` helper from `merge_gossip` to reduce cyclomatic complexity
+- Added `parse_last_seen` helper to normalize string timestamps to `Time` objects during gossip merge
+- Applied Copilot review suggestions: guard clauses, nil-safety, and minor style cleanups
+
 ## [0.4.2] - 2026-03-30
 
 ### Changed
