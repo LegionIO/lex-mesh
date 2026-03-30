@@ -65,8 +65,17 @@ module Legion
           end
 
           def publish_gossip(**)
-            peer_table.expire
+            expired = peer_table.expire
             registry = mesh_registry
+
+            Array(expired).each do |agent_id|
+              result = registry.unregister_agent(agent_id)
+              if result
+                log.info "[mesh] ttl-expired agent unregistered from registry: agent=#{agent_id}"
+              else
+                log.debug "[mesh] ttl-expired agent not found in registry: agent=#{agent_id}"
+              end
+            end
             peers = registry.all_agents.first(gossip_max_peers).map do |agent|
               agent.slice(:agent_id, :capabilities, :node, :source, :status, :generation,
                           :last_seen, :registered_at).transform_values { |v| v.is_a?(Time) ? v.to_s : v }
@@ -79,36 +88,17 @@ module Legion
             { success: false, reason: :error, message: e.message }
           end
 
-          def merge_gossip(incoming_peers:, sender: nil, **) # rubocop:disable Lint/UnusedMethodArgument
+          def merge_gossip(incoming_peers:, sender: nil, **)
             registry = mesh_registry
-            merged = 0
             conflict_agents = []
-
-            incoming_peers.each do |peer|
-              peer = peer.transform_keys(&:to_sym)
-
+            merged = 0
+            incoming_peers.each do |raw_peer|
+              peer = raw_peer.transform_keys(&:to_sym)
               if peer[:node] == local_node_name
                 conflict_agents << peer[:agent_id] if sender && sender != local_node_name
                 next
               end
-
-              peer_table.upsert(peer[:agent_id], peer)
-
-              local = registry.agents[peer[:agent_id]]
-              if local.nil?
-                registry.register_agent(
-                  peer[:agent_id],
-                  capabilities: (peer[:capabilities] || []).map(&:to_sym),
-                  source:       (peer[:source] || :native).to_sym,
-                  node:         peer[:node]
-                )
-                registry.agents[peer[:agent_id]][:generation] = peer[:generation] || 1
-                merged += 1
-              elsif (peer[:generation] || 0) > (local[:generation] || 0)
-                local.merge!(peer.slice(:capabilities, :status, :generation, :last_seen))
-                local[:capabilities] = (local[:capabilities] || []).map(&:to_sym)
-                merged += 1
-              end
+              merged += 1 if upsert_remote_peer(peer, registry)
             end
 
             if conflict_agents.any?
@@ -164,6 +154,37 @@ module Legion
             log.warn "[mesh] split-brain detected: node=#{conflicting_node} claims agents on #{local_node}: #{conflict_agents.join(',')}"
           rescue StandardError => e
             log.warn "[mesh] failed to publish conflict signal: #{e.message}"
+          end
+
+          def upsert_remote_peer(peer, registry) # rubocop:disable Naming/PredicateMethod
+            peer_table.upsert(peer[:agent_id], peer)
+            local = registry.agents[peer[:agent_id]]
+            if local.nil?
+              registry.register_agent(
+                peer[:agent_id],
+                capabilities: (peer[:capabilities] || []).map(&:to_sym),
+                source:       (peer[:source] || :native).to_sym,
+                node:         peer[:node]
+              )
+              entry = registry.agents[peer[:agent_id]]
+              entry[:generation] = peer[:generation] || 1
+              entry[:last_seen] = parse_last_seen(peer[:last_seen])
+              true
+            elsif (peer[:generation] || 0) > (local[:generation] || 0)
+              local.merge!(peer.slice(:capabilities, :status, :generation))
+              local[:capabilities] = (local[:capabilities] || []).map(&:to_sym)
+              local[:last_seen] = parse_last_seen(peer[:last_seen])
+              true
+            end
+          end
+
+          def parse_last_seen(value)
+            return Time.now.utc if value.nil?
+            return value if value.is_a?(Time)
+
+            Time.parse(value.to_s)
+          rescue ArgumentError
+            Time.now.utc
           end
 
           def gossip_max_peers

@@ -60,6 +60,49 @@ RSpec.describe 'Gossip runner methods' do
       result = subject.merge_gossip(incoming_peers: incoming, sender: 'node-02')
       expect(result[:merged]).to eq(0)
     end
+
+    context 'split-brain detection' do
+      before do
+        allow(subject).to receive(:local_node_name).and_return('local-node')
+        allow(subject).to receive(:publish_mesh_conflict)
+      end
+
+      it 'detects a conflict when incoming peers claim the local node from a different sender' do
+        incoming = [
+          { agent_id: 'local-agent', node: 'local-node', generation: 1 }
+        ]
+        result = subject.merge_gossip(incoming_peers: incoming, sender: 'other-node')
+        expect(result[:conflicts]).to eq(1)
+      end
+
+      it 'publishes MeshConflict when split-brain is detected' do
+        incoming = [
+          { agent_id: 'local-agent', node: 'local-node', generation: 1 }
+        ]
+        subject.merge_gossip(incoming_peers: incoming, sender: 'other-node')
+        expect(subject).to have_received(:publish_mesh_conflict).with(
+          local_node:       'local-node',
+          conflicting_node: 'other-node',
+          conflict_agents:  ['local-agent']
+        )
+      end
+
+      it 'does not publish MeshConflict when sender is the local node' do
+        incoming = [
+          { agent_id: 'local-agent', node: 'local-node', generation: 1 }
+        ]
+        subject.merge_gossip(incoming_peers: incoming, sender: 'local-node')
+        expect(subject).not_to have_received(:publish_mesh_conflict)
+      end
+
+      it 'reports zero conflicts when no peers claim the local node' do
+        incoming = [
+          { agent_id: 'remote-agent', node: 'remote-node', generation: 1 }
+        ]
+        result = subject.merge_gossip(incoming_peers: incoming, sender: 'remote-node')
+        expect(result[:conflicts]).to eq(0)
+      end
+    end
   end
 
   describe '#publish_gossip' do
