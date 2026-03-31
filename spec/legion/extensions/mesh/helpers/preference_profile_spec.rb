@@ -191,6 +191,81 @@ RSpec.describe Legion::Extensions::Mesh::Helpers::PreferenceProfile do
     end
   end
 
+  describe '.update_from_observation' do
+    before { described_class.clear_observations }
+
+    let(:cli_signal)   { { content_type: :text, channel: :cli, direct_address: false } }
+    let(:chat_signal)  { { content_type: :text, channel: :chat, direct_address: true } }
+    let(:mixed_signal) { { content_type: :text, channel: :api, direct_address: false } }
+
+    it 'returns { updated: true } on each call' do
+      result = described_class.update_from_observation(owner_id: 'user-obs', signals: cli_signal)
+      expect(result).to eq({ updated: true })
+    end
+
+    it 'accumulates signals per owner_id' do
+      5.times { described_class.update_from_observation(owner_id: 'user-obs', signals: cli_signal) }
+      counts = described_class.observation_counts
+      expect(counts['user-obs']).to eq(5)
+    end
+
+    it 'does not infer preferences before threshold (20)' do
+      19.times { described_class.update_from_observation(owner_id: 'user-obs', signals: cli_signal) }
+      inferred = described_class.inferred_preferences('user-obs')
+      expect(inferred).to be_empty
+    end
+
+    it 'derives :concise verbosity for CLI-heavy usage after threshold' do
+      20.times { described_class.update_from_observation(owner_id: 'user-cli', signals: cli_signal) }
+      inferred = described_class.inferred_preferences('user-cli')
+      verbosity = inferred.find { |p| p[:domain] == 'verbosity' }
+      expect(verbosity).not_to be_nil
+      expect(verbosity[:value]).to eq('concise')
+      expect(verbosity[:source]).to eq('observation')
+    end
+
+    it 'derives :conversational tone for high direct_address ratio after threshold' do
+      20.times { described_class.update_from_observation(owner_id: 'user-da', signals: chat_signal) }
+      inferred = described_class.inferred_preferences('user-da')
+      tone = inferred.find { |p| p[:domain] == 'tone' }
+      expect(tone).not_to be_nil
+      expect(tone[:value]).to eq('conversational')
+      expect(tone[:source]).to eq('observation')
+    end
+
+    it 'derives :adaptive format for mixed channel usage after threshold' do
+      channels = %i[cli api chat rest]
+      20.times.with_index do |i, _|
+        ch = channels[i % channels.length]
+        described_class.update_from_observation(
+          owner_id: 'user-mix',
+          signals:  { content_type: :text, channel: ch, direct_address: false }
+        )
+      end
+      inferred = described_class.inferred_preferences('user-mix')
+      format = inferred.find { |p| p[:domain] == 'format' }
+      expect(format).not_to be_nil
+      expect(format[:value]).to eq('adaptive')
+      expect(format[:source]).to eq('observation')
+    end
+
+    it 'keeps separate observation counts per owner_id' do
+      3.times { described_class.update_from_observation(owner_id: 'user-a', signals: cli_signal) }
+      7.times { described_class.update_from_observation(owner_id: 'user-b', signals: cli_signal) }
+      counts = described_class.observation_counts
+      expect(counts['user-a']).to eq(3)
+      expect(counts['user-b']).to eq(7)
+    end
+
+    it 'calls store_preference for each inferred preference after threshold' do
+      allow(described_class).to receive(:store_preference).and_call_original
+      20.times { described_class.update_from_observation(owner_id: 'user-store', signals: cli_signal) }
+      expect(described_class).to have_received(:store_preference).with(
+        hash_including(owner_id: 'user-store', source: 'observation')
+      ).at_least(:once)
+    end
+  end
+
   describe '.preference_instructions' do
     it 'generates natural language prompt instructions from profile' do
       profile = {
