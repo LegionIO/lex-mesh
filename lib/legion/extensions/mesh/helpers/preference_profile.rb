@@ -246,6 +246,86 @@ module Legion
           def personality_available?
             defined?(Legion::Extensions::Agentic::Self::Personality::Runners::Personality)
           end
+
+          OBSERVATION_THRESHOLD = 20
+
+          def update_from_observation(owner_id:, signals:)
+            @observation_counts  ||= {} # rubocop:disable ThreadSafety/ClassInstanceVariable
+            @observation_signals ||= {} # rubocop:disable ThreadSafety/ClassInstanceVariable
+
+            key = owner_id.to_s
+            @observation_counts[key] = (@observation_counts[key] || 0) + 1 # rubocop:disable ThreadSafety/ClassInstanceVariable
+            @observation_signals[key] ||= [] # rubocop:disable ThreadSafety/ClassInstanceVariable
+            @observation_signals[key] << signals # rubocop:disable ThreadSafety/ClassInstanceVariable
+
+            derive_and_store_observations(owner_id: key) if @observation_counts[key] >= OBSERVATION_THRESHOLD # rubocop:disable ThreadSafety/ClassInstanceVariable
+
+            { updated: true }
+          rescue StandardError => _e
+            { updated: false }
+          end
+
+          def observation_counts
+            @observation_counts ||= {} # rubocop:disable ThreadSafety/ClassInstanceVariable
+          end
+
+          def inferred_preferences(owner_id)
+            @inferred_preferences ||= {} # rubocop:disable ThreadSafety/ClassInstanceVariable
+            @inferred_preferences[owner_id.to_s] || [] # rubocop:disable ThreadSafety/ClassInstanceVariable
+          end
+
+          def clear_observations
+            @observation_counts    = {} # rubocop:disable ThreadSafety/ClassInstanceVariable
+            @observation_signals   = {} # rubocop:disable ThreadSafety/ClassInstanceVariable
+            @inferred_preferences  = {} # rubocop:disable ThreadSafety/ClassInstanceVariable
+          end
+
+          def derive_and_store_observations(owner_id:)
+            @observation_signals ||= {} # rubocop:disable ThreadSafety/ClassInstanceVariable
+            signals = @observation_signals[owner_id] || [] # rubocop:disable ThreadSafety/ClassInstanceVariable
+            return if signals.empty?
+
+            inferred = []
+            inferred << derive_verbosity(signals)
+            inferred << derive_tone(signals)
+            inferred << derive_format(signals)
+            inferred = inferred.compact
+
+            @inferred_preferences ||= {} # rubocop:disable ThreadSafety/ClassInstanceVariable
+            @inferred_preferences[owner_id] = inferred # rubocop:disable ThreadSafety/ClassInstanceVariable
+
+            inferred.each do |pref|
+              store_preference(
+                owner_id: owner_id,
+                domain:   pref[:domain],
+                value:    pref[:value],
+                source:   pref[:source]
+              )
+            end
+          end
+
+          def derive_verbosity(signals)
+            cli_count = signals.count { |s| s[:channel] == :cli }
+            cli_ratio = cli_count.to_f / signals.size
+            return nil unless cli_ratio >= 0.5
+
+            { domain: 'verbosity', value: 'concise', source: 'observation', confidence: 0.65 }
+          end
+
+          def derive_tone(signals)
+            da_count = signals.count { |s| s[:direct_address] }
+            da_ratio = da_count.to_f / signals.size
+            return nil unless da_ratio >= 0.5
+
+            { domain: 'tone', value: 'conversational', source: 'observation', confidence: 0.65 }
+          end
+
+          def derive_format(signals)
+            unique_channels = signals.map { |s| s[:channel] }.uniq
+            return nil unless unique_channels.size >= 3
+
+            { domain: 'format', value: 'adaptive', source: 'observation', confidence: 0.55 }
+          end
         end
       end
     end

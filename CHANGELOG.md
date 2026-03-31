@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.4.4] - 2026-03-31
+
+### Added
+- `PreferenceProfile.update_from_observation(owner_id:, signals:)`: accumulates interaction signals (channel, direct_address, content_type) per owner and infers preferences after 20 observations — CLI-heavy usage → `:concise` verbosity, high direct_address ratio → `:conversational` tone, mixed channels → `:adaptive` format (8 specs)
+- `PreferenceProfile.observation_counts`: read accessor for accumulated observation count per owner
+- `PreferenceProfile.inferred_preferences(owner_id)`: read accessor for inferred preference list per owner
+- `PreferenceProfile.clear_observations`: test/reset helper to flush observation state
+
 ## [0.4.3] - 2026-03-30
 
 ### Added
