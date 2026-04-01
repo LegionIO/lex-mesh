@@ -1,5 +1,16 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+- `observation` (0.55) and `llm_inference` (0.65) source confidence tiers in PreferenceProfile
+
+## [0.4.5] - 2026-03-31
+
+### Added
+- `observation` (0.55) and `llm_inference` (0.65) source confidence tiers in `PreferenceProfile::SOURCE_CONFIDENCE`
+- Enables proper confidence layering for GAIA's calibration feedback loop
+
 ## [0.4.4] - 2026-03-31
 
 ### Added
