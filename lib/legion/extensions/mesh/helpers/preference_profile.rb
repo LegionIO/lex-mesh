@@ -22,6 +22,8 @@ module Legion
           SOURCE_CONFIDENCE = {
             'explicit'            => 1.0,
             'preference_learning' => 0.75,
+            'llm_inference'       => 0.65,
+            'observation'         => 0.55,
             'personality'         => 0.4,
             'defaults'            => 0.0
           }.freeze

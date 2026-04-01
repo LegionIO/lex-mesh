@@ -286,4 +286,25 @@ RSpec.describe Legion::Extensions::Mesh::Helpers::PreferenceProfile do
       expect(instructions).to be_nil
     end
   end
+
+  describe 'SOURCE_CONFIDENCE' do
+    it 'includes observation source' do
+      expect(described_class::SOURCE_CONFIDENCE).to have_key('observation')
+      expect(described_class::SOURCE_CONFIDENCE['observation']).to eq(0.55)
+    end
+
+    it 'includes llm_inference source' do
+      expect(described_class::SOURCE_CONFIDENCE).to have_key('llm_inference')
+      expect(described_class::SOURCE_CONFIDENCE['llm_inference']).to eq(0.65)
+    end
+
+    it 'maintains descending confidence order for all sources' do
+      conf = described_class::SOURCE_CONFIDENCE
+      expect(conf['explicit']).to be > conf['preference_learning']
+      expect(conf['preference_learning']).to be > conf['llm_inference']
+      expect(conf['llm_inference']).to be > conf['observation']
+      expect(conf['observation']).to be > conf['personality']
+      expect(conf['personality']).to be > conf['defaults']
+    end
+  end
 end
