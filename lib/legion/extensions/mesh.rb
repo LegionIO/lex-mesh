@@ -14,6 +14,7 @@ require 'legion/extensions/mesh/runners/delegation'
 require 'legion/extensions/mesh/runners/task_request'
 
 if Legion.const_defined?(:Transport, false)
+  require 'legion/extensions/mesh/transport/exchanges/fanout'
   require 'legion/extensions/mesh/transport/messages/preference_query'
   require 'legion/extensions/mesh/transport/messages/preference_response'
   require 'legion/extensions/mesh/transport/messages/mesh_departure'

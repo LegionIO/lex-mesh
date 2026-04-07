@@ -14,17 +14,15 @@ unless defined?(Legion::Transport::Message)
   end
 end
 
-unless defined?(Legion::Transport::Exchanges::Node)
+unless defined?(Legion::Transport::Exchange)
   module Legion
     module Transport
-      module Exchanges
-        class Node # rubocop:disable Lint/EmptyClass
-        end
-      end
+      class Exchange; end # rubocop:disable Lint/EmptyClass
     end
   end
 end
 
+require 'legion/extensions/mesh/transport/exchanges/fanout'
 require 'legion/extensions/mesh/transport/messages/gossip'
 
 RSpec.describe Legion::Extensions::Mesh::Transport::Messages::Gossip do
@@ -36,8 +34,8 @@ RSpec.describe Legion::Extensions::Mesh::Transport::Messages::Gossip do
     )
   end
 
-  it 'uses the node exchange' do
-    expect(subject.exchange).to eq(Legion::Transport::Exchanges::Node)
+  it 'uses the fanout exchange' do
+    expect(subject.exchange).to eq(Legion::Extensions::Mesh::Transport::Exchanges::Fanout)
   end
 
   it 'routes to mesh.gossip' do

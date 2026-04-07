@@ -11,7 +11,7 @@ Agent-to-agent mesh communication layer for the LegionIO cognitive architecture.
 ## Gem Info
 
 - **Gem name**: `lex-mesh`
-- **Version**: `0.4.0`
+- **Version**: `0.4.5`
 - **Module**: `Legion::Extensions::Mesh`
 - **Ruby**: `>= 3.4`
 - **License**: MIT
@@ -26,6 +26,9 @@ lib/legion/extensions/mesh/
     registry.rb            # Registry class - agents hash, capabilities index, messages buffer
     preference_profile.rb  # PreferenceProfile - resolve, store, clear, preference_instructions
     pending_requests.rb    # Thread-safe (Mutex) tracker for async RPC by correlation_id with TTL
+    delegation.rb          # Delegation class - create, complete, revoke, depth enforcement, consent validation
+    peer_table.rb          # PeerTable class - TTL-aware peer tracking with Mutex
+    peer_verify.rb         # PeerVerify module - Ed25519 message signing and verification
   runners/
     mesh.rb                # register, unregister (+ departure signal), heartbeat, send_message, find_agents, mesh_status, expire_silent_agents
     preferences.rb         # query_preferences, handle_preference_query, handle_preference_response, dispatch_preference_message, expire_pending_requests
@@ -36,13 +39,18 @@ lib/legion/extensions/mesh/
       preference_query.rb    # Publishes to agent exchange with agent.<target>.preferences routing key
       preference_response.rb # Response routed back via agent.<requester>.preferences
       mesh_departure.rb      # Publishes to node exchange with mesh.departure routing key on agent leave
+      gossip.rb              # Publishes mesh gossip snapshot to the mesh exchange
+      mesh_conflict.rb       # Publishes conflict resolution events to the mesh exchange
     queues/
       preference.rb          # Per-agent preference queue (agent.<id>.preferences, auto-delete)
+      gossip.rb              # Per-node gossip queue bound to mesh.gossip routing key
   actors/
     heartbeat.rb             # Every 10s: broadcast_heartbeat
     silence_watchdog.rb      # Every 15s: expire_silent_agents (marks offline when last_seen > MESH_SILENCE_TIMEOUT)
     preference_listener.rb   # Subscription: dispatches preference_query/response from agent queue
     pending_expiry.rb        # Every 30s: expire TTL-expired pending requests
+    gossip.rb                # Every 15s: publish_gossip — fan out mesh state to peers
+    gossip_listener.rb       # Subscription: receives gossip from peer nodes, merges into registry
 spec/
   legion/extensions/mesh/
     runners/

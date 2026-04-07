@@ -2,8 +2,12 @@
 
 ## [Unreleased]
 
-### Added
-- `observation` (0.55) and `llm_inference` (0.65) source confidence tiers in PreferenceProfile
+## [0.4.6] - 2026-04-07
+
+### Changed
+- Mesh broadcast messages (gossip, departure, conflict) now publish to `amq.fanout` instead of the `node` topic exchange, ensuring delivery to all connected daemon queues without explicit routing key bindings
+- Added `Transport::Exchanges::Fanout` wrapper for the built-in `amq.fanout` exchange with passive declaration
+- Removed routing key from gossip queue binding (fanout exchanges ignore routing keys)
 
 ## [0.4.5] - 2026-03-31
 

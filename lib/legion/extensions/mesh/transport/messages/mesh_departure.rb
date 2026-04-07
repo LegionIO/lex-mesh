@@ -7,7 +7,7 @@ module Legion
         module Messages
           class MeshDeparture < Legion::Transport::Message
             def exchange
-              Legion::Transport::Exchanges::Node
+              Legion::Extensions::Mesh::Transport::Exchanges::Fanout
             end
 
             def routing_key

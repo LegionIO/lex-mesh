@@ -11,11 +11,7 @@ module Legion
             end
 
             def exchange
-              Legion::Transport::Exchanges::Node
-            end
-
-            def routing_key
-              'mesh.gossip'
+              Legion::Extensions::Mesh::Transport::Exchanges::Fanout
             end
           end
         end

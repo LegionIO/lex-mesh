@@ -14,17 +14,15 @@ unless defined?(Legion::Transport::Message)
   end
 end
 
-unless defined?(Legion::Transport::Exchanges::Node)
+unless defined?(Legion::Transport::Exchange)
   module Legion
     module Transport
-      module Exchanges
-        class Node # rubocop:disable Lint/EmptyClass
-        end
-      end
+      class Exchange; end # rubocop:disable Lint/EmptyClass
     end
   end
 end
 
+require 'legion/extensions/mesh/transport/exchanges/fanout'
 require 'legion/extensions/mesh/transport/messages/mesh_conflict'
 
 RSpec.describe Legion::Extensions::Mesh::Transport::Messages::MeshConflict do
@@ -37,8 +35,8 @@ RSpec.describe Legion::Extensions::Mesh::Transport::Messages::MeshConflict do
   end
 
   describe '#exchange' do
-    it 'returns the Node exchange' do
-      expect(msg.exchange).to eq(Legion::Transport::Exchanges::Node)
+    it 'returns the Fanout exchange' do
+      expect(msg.exchange).to eq(Legion::Extensions::Mesh::Transport::Exchanges::Fanout)
     end
   end
 
