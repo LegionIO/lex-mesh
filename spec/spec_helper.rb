@@ -36,7 +36,7 @@ module Legion
 end
 
 Legion::Settings.loader.settings[:client] ||= {}
-Legion::Settings.loader.settings[:client][:name] = 'test-agent'
+Legion::Settings.loader.settings[:client][:name] = 'test-agent' # rubocop:disable Legion/Llm/SettingsAccessPath
 
 require 'legion/extensions/mesh'
 
