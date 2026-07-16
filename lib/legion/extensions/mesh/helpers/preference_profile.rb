@@ -103,7 +103,34 @@ module Legion
           def clear_preferences(owner_id:, source: nil)
             return { cleared: false, reason: :memory_not_available } unless memory_available?
 
-            { cleared: true, owner_id: owner_id, source: source }
+            runner = memory_runner
+            result = runner.retrieve_by_domain(domain_tag: "owner:#{owner_id}")
+            traces = result[:traces] || []
+            traces.each { |t| runner.delete_trace(trace_id: t[:trace_id]) }
+            { cleared: true, owner_id: owner_id, source: source, count: traces.size }
+          rescue StandardError => e
+            { cleared: false, reason: :error, message: e.message }
+          end
+
+          def erase_partner!(identity:)
+            key = identity.to_s
+            @observation_counts&.delete(key)    # rubocop:disable ThreadSafety/ClassInstanceVariable
+            @observation_signals&.delete(key)   # rubocop:disable ThreadSafety/ClassInstanceVariable
+            @inferred_preferences&.delete(key)  # rubocop:disable ThreadSafety/ClassInstanceVariable
+            clear_mesh_cache(agent_id: key)
+
+            traces_deleted = 0
+            if memory_available?
+              runner = memory_runner
+              result = runner.retrieve_by_domain(domain_tag: "owner:#{key}")
+              traces = result[:traces] || []
+              traces.each { |t| runner.delete_trace(trace_id: t[:trace_id]) }
+              traces_deleted = traces.size
+            end
+
+            { erased: true, identity: key, traces_deleted: traces_deleted }
+          rescue StandardError => e
+            { erased: false, identity: key, reason: :error, message: e.message }
           end
 
           def preference_instructions(profile:)

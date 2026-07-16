@@ -12,11 +12,15 @@ unless defined?(Legion::Extensions::Agentic::Memory::Trace::Runners::Traces)
             module Runners
               module Traces
                 def retrieve_by_domain(**)
-                  []
+                  { count: 0, traces: [] }
                 end
 
                 def store_trace(**)
                   { stored: true }
+                end
+
+                def delete_trace(trace_id:, **)
+                  { deleted: true, trace_id: trace_id }
                 end
               end
             end
@@ -106,6 +110,90 @@ RSpec.describe Legion::Extensions::Mesh::Helpers::PreferenceProfile do
     it 'returns cleared result' do
       result = profile_mod.clear_preferences(owner_id: 'user1', source: 'explicit')
       expect(result[:cleared]).to be true
+    end
+
+    it 'actually deletes traces via memory runner when memory is available' do
+      trace = { trace_id: 'abc-123', domain_tags: ['preference', 'owner:user1'], confidence: 0.9 }
+      runner_double = double('memory_runner')
+      allow(profile_mod).to receive(:memory_available?).and_return(true)
+      allow(profile_mod).to receive(:memory_runner).and_return(runner_double)
+      allow(runner_double).to receive(:retrieve_by_domain).and_return({ traces: [trace] })
+      allow(runner_double).to receive(:delete_trace).and_return({ deleted: true })
+
+      result = profile_mod.clear_preferences(owner_id: 'user1')
+
+      expect(runner_double).to have_received(:retrieve_by_domain).with(hash_including(domain_tag: 'owner:user1'))
+      expect(runner_double).to have_received(:delete_trace).with(hash_including(trace_id: 'abc-123'))
+      expect(result[:cleared]).to be true
+      expect(result[:count]).to eq(1)
+    end
+
+    it 'returns not_available when memory is unavailable' do
+      allow(profile_mod).to receive(:memory_available?).and_return(false)
+      result = profile_mod.clear_preferences(owner_id: 'user1')
+      expect(result[:cleared]).to be false
+      expect(result[:reason]).to eq(:memory_not_available)
+    end
+  end
+
+  describe '.erase_partner!' do
+    before do
+      described_class.clear_observations
+      described_class.clear_mesh_cache
+    end
+
+    it 'removes observation counts for the identity' do
+      5.times { described_class.update_from_observation(owner_id: 'partner-x', signals: { channel: :cli, direct_address: false }) }
+      described_class.erase_partner!(identity: 'partner-x')
+      expect(described_class.observation_counts['partner-x']).to be_nil
+    end
+
+    it 'removes inferred preferences for the identity' do
+      20.times { described_class.update_from_observation(owner_id: 'partner-x', signals: { channel: :cli, direct_address: false }) }
+      described_class.erase_partner!(identity: 'partner-x')
+      expect(described_class.inferred_preferences('partner-x')).to be_empty
+    end
+
+    it 'removes mesh cache entries for the identity' do
+      described_class.store_mesh_profile(
+        agent_id:        'partner-x',
+        profile:         { verbosity: :concise },
+        source_agent_id: 'partner-x'
+      )
+      described_class.erase_partner!(identity: 'partner-x')
+      expect(described_class.cached_mesh_profile(agent_id: 'partner-x')).to be_nil
+    end
+
+    it 'deletes memory traces tagged with the identity' do
+      trace = { trace_id: 'xyz-789', domain_tags: ['preference', 'owner:partner-x'], confidence: 0.8 }
+      runner_double = double('memory_runner')
+      allow(described_class).to receive(:memory_available?).and_return(true)
+      allow(described_class).to receive(:memory_runner).and_return(runner_double)
+      allow(runner_double).to receive(:retrieve_by_domain).and_return({ traces: [trace] })
+      allow(runner_double).to receive(:delete_trace).and_return({ deleted: true })
+
+      described_class.erase_partner!(identity: 'partner-x')
+
+      expect(runner_double).to have_received(:delete_trace).with(hash_including(trace_id: 'xyz-789'))
+    end
+
+    it 'leaves data for other identities untouched' do
+      3.times { described_class.update_from_observation(owner_id: 'partner-y', signals: { channel: :cli, direct_address: false }) }
+      described_class.store_mesh_profile(
+        agent_id:        'partner-y',
+        profile:         { verbosity: :detailed },
+        source_agent_id: 'partner-y'
+      )
+      described_class.erase_partner!(identity: 'partner-x')
+      expect(described_class.observation_counts['partner-y']).to eq(3)
+      expect(described_class.cached_mesh_profile(agent_id: 'partner-y')).not_to be_nil
+    end
+
+    it 'returns a result hash with erased identity and counts' do
+      result = described_class.erase_partner!(identity: 'partner-x')
+      expect(result).to be_a(Hash)
+      expect(result[:erased]).to be true
+      expect(result[:identity]).to eq('partner-x')
     end
   end
 
