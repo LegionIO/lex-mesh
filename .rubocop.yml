@@ -1,2 +1,5 @@
 inherit_gem:
   rubocop-legion: config/lex.yml
+
+Legion/Llm/TaxonomyEnum:
+  Enabled: false
