@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+## [0.4.7] - 2026-07-16
+
+### Fixed
+- `PreferenceProfile.clear_preferences` was a no-op — now actually deletes all memory traces tagged `owner:<owner_id>` via the memory runner
+
+### Added
+- `PreferenceProfile.erase_partner!(identity:)`: removes all preference data for a partner identity — observation counts, observation signals, inferred preferences, mesh cache entries, and memory traces tagged `owner:<identity>`
+
 ## [0.4.6] - 2026-04-07
 
 ### Changed

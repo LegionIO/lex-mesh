@@ -31,7 +31,7 @@ RSpec.describe Legion::Extensions::Mesh::Runners::Preferences do
         end)
         stub_const('Legion::Extensions::Mesh::Transport::Messages::PreferenceQuery',
                    Class.new do
-                     def initialize(**_opts); end
+                     def initialize(**opts); end
 
                      def publish; end
                    end)

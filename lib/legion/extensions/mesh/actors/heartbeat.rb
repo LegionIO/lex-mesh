@@ -6,7 +6,7 @@ module Legion
   module Extensions
     module Mesh
       module Actor
-        class Heartbeat < Legion::Extensions::Actors::Every # rubocop:disable Legion/Extension/EveryActorRequiresTime
+        class Heartbeat < Legion::Extensions::Actors::Every
           def runner_class
             Legion::Extensions::Mesh::Runners::Mesh
           end
