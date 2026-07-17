@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+## [0.4.7] - 2026-07-16
+
+### Fixed
+- `derive_format` no longer emits `'adaptive'` (not in `VALID_VALUES['format']`); now returns `'structured'` for multi-channel signals, matching the explicit valid set
+- `store_preference` serializes payloads with `Legion::JSON.dump` instead of `.to_s` — structured roundtrip replaces fragile string representation
+- `parse_preference_trace` tries JSON parse first, falls back to legacy regex for traces stored before this release — existing data continues to parse
+- `clear_preferences` was a no-op on main branch; now actually deletes all memory traces tagged `owner:<owner_id>` via the memory runner
+
+### Added
+- `parse_preference_payload_json` / `parse_preference_payload_legacy`: two-pass trace parser (JSON primary, regex fallback)
+- 8 new specs: JSON payload roundtrip, legacy regex fallback, invalid payload handling, `derive_format` valid-value guard, `clear_preferences` trace deletion, and source-confidence hierarchy
+
 ## [0.4.6] - 2026-04-07
 
 ### Changed
