@@ -90,7 +90,7 @@ module Legion
             confidence = SOURCE_CONFIDENCE.fetch(source.to_s, 0.5)
             memory_runner.store_trace(
               type:            :semantic,
-              content_payload: { domain: domain, value: value, source: source }.to_s,
+              content_payload: pref_json_dump({ domain: domain, value: value, source: source }),
               domain_tags:     ['preference', "preference:#{domain}", "owner:#{owner_id}"],
               origin:          :direct_experience,
               confidence:      confidence
@@ -251,12 +251,29 @@ module Legion
             payload = trace[:content_payload]
             return nil unless payload.is_a?(String)
 
+            parsed = parse_preference_payload_json(payload)
+            parsed ||= parse_preference_payload_legacy(payload)
+            return nil unless parsed
+
+            { domain: parsed[:domain], value: parsed[:value], source: parsed[:source], confidence: trace[:confidence] }
+          rescue StandardError => _e
+            nil
+          end
+
+          def parse_preference_payload_json(payload)
+            data = pref_json_load(payload)
+            return nil unless data.is_a?(Hash) && data[:domain] && data[:value] && data[:source]
+
+            data
+          rescue StandardError => _e
+            nil
+          end
+
+          def parse_preference_payload_legacy(payload)
             match = payload.match(/domain.*?(\w+).*?value.*?(\w+).*?source.*?(\w+)/)
             return nil unless match
 
-            { domain: match[1], value: match[2], source: match[3], confidence: trace[:confidence] }
-          rescue StandardError => _e
-            nil
+            { domain: match[1], value: match[2], source: match[3] }
           end
 
           def compute_compatibility(profile)
@@ -353,7 +370,15 @@ module Legion
             unique_channels = signals.map { |s| s[:channel] }.uniq
             return nil unless unique_channels.size >= 3
 
-            { domain: 'format', value: 'adaptive', source: 'observation', confidence: 0.55 }
+            { domain: 'format', value: 'structured', source: 'observation', confidence: 0.55 }
+          end
+
+          def pref_json_dump(data)
+            Legion::JSON.dump(data) # rubocop:disable Legion/HelperMigration/DirectJson
+          end
+
+          def pref_json_load(payload)
+            Legion::JSON.load(payload) # rubocop:disable Legion/HelperMigration/DirectJson
           end
         end
       end

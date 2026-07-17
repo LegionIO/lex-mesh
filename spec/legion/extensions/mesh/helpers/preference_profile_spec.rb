@@ -104,6 +104,24 @@ RSpec.describe Legion::Extensions::Mesh::Helpers::PreferenceProfile do
       expect(result[:stored]).to be false
       expect(result[:reason]).to eq(:memory_not_available)
     end
+
+    it 'serializes payload as JSON string' do
+      captured_payload = nil
+      runner_double = double('memory_runner')
+      allow(profile_mod).to receive(:memory_available?).and_return(true)
+      allow(profile_mod).to receive(:memory_runner).and_return(runner_double)
+      allow(runner_double).to receive(:store_trace) do |**args|
+        captured_payload = args[:content_payload]
+        { stored: true }
+      end
+
+      profile_mod.store_preference(owner_id: 'u1', domain: 'verbosity', value: 'concise', source: 'explicit')
+
+      parsed = Legion::JSON.load(captured_payload)
+      expect(parsed[:domain]).to eq('verbosity')
+      expect(parsed[:value]).to eq('concise')
+      expect(parsed[:source]).to eq('explicit')
+    end
   end
 
   describe '.clear_preferences' do
@@ -133,6 +151,38 @@ RSpec.describe Legion::Extensions::Mesh::Helpers::PreferenceProfile do
       result = profile_mod.clear_preferences(owner_id: 'user1')
       expect(result[:cleared]).to be false
       expect(result[:reason]).to eq(:memory_not_available)
+    end
+  end
+
+  describe '.parse_preference_trace' do
+    it 'parses JSON-encoded payload and returns symbol-keyed hash' do
+      payload = Legion::JSON.dump({ domain: 'verbosity', value: 'concise', source: 'explicit' })
+      trace = { content_payload: payload, confidence: 0.9 }
+      result = profile_mod.parse_preference_trace(trace)
+      expect(result[:domain]).to eq('verbosity')
+      expect(result[:value]).to eq('concise')
+      expect(result[:source]).to eq('explicit')
+      expect(result[:confidence]).to eq(0.9)
+    end
+
+    it 'falls back to legacy regex for old .to_s hash format' do
+      legacy_payload = '{:domain=>"verbosity", :value=>"concise", :source=>"explicit"}'
+      trace = { content_payload: legacy_payload, confidence: 0.7 }
+      result = profile_mod.parse_preference_trace(trace)
+      expect(result[:domain]).to eq('verbosity')
+      expect(result[:value]).to eq('concise')
+      expect(result[:source]).to eq('explicit')
+      expect(result[:confidence]).to eq(0.7)
+    end
+
+    it 'returns nil for a non-string payload' do
+      trace = { content_payload: nil, confidence: 0.5 }
+      expect(profile_mod.parse_preference_trace(trace)).to be_nil
+    end
+
+    it 'returns nil for a payload that cannot be parsed by either method' do
+      trace = { content_payload: 'garbage data without structure', confidence: 0.5 }
+      expect(profile_mod.parse_preference_trace(trace)).to be_nil
     end
   end
 
@@ -321,7 +371,7 @@ RSpec.describe Legion::Extensions::Mesh::Helpers::PreferenceProfile do
       expect(tone[:source]).to eq('observation')
     end
 
-    it 'derives :adaptive format for mixed channel usage after threshold' do
+    it 'derives :structured format for mixed channel usage after threshold' do
       channels = %i[cli api chat rest]
       20.times.with_index do |i, _|
         ch = channels[i % channels.length]
@@ -333,8 +383,25 @@ RSpec.describe Legion::Extensions::Mesh::Helpers::PreferenceProfile do
       inferred = described_class.inferred_preferences('user-mix')
       format = inferred.find { |p| p[:domain] == 'format' }
       expect(format).not_to be_nil
-      expect(format[:value]).to eq('adaptive')
+      expect(format[:value]).to eq('structured')
       expect(format[:source]).to eq('observation')
+    end
+
+    it 'derive_format never returns a value outside VALID_VALUES[:format]' do
+      channels = %i[cli api chat rest grpc websocket]
+      20.times.with_index do |i, _|
+        ch = channels[i % channels.length]
+        described_class.update_from_observation(
+          owner_id: 'user-valid',
+          signals:  { content_type: :text, channel: ch, direct_address: false }
+        )
+      end
+      inferred = described_class.inferred_preferences('user-valid')
+      format_pref = inferred.find { |p| p[:domain] == 'format' }
+      if format_pref
+        valid_format_values = described_class::VALID_VALUES['format'].map(&:to_s)
+        expect(valid_format_values).to include(format_pref[:value])
+      end
     end
 
     it 'keeps separate observation counts per owner_id' do
