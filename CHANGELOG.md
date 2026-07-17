@@ -8,9 +8,10 @@
 - `derive_format` no longer emits `'adaptive'` (not in `VALID_VALUES['format']`); now returns `'structured'` for multi-channel signals, matching the explicit valid set
 - `store_preference` serializes payloads with `Legion::JSON.dump` instead of `.to_s` — structured roundtrip replaces fragile string representation
 - `parse_preference_trace` tries JSON parse first, falls back to legacy regex for traces stored before this release — existing data continues to parse
-- `clear_preferences` was a no-op on main branch; now actually deletes all memory traces tagged `owner:<owner_id>` via the memory runner
+- `clear_preferences` was a no-op — now actually deletes all memory traces tagged `owner:<owner_id>` via the memory runner
 
 ### Added
+- `PreferenceProfile.erase_partner!(identity:)`: removes all preference data for a partner identity — observation counts, observation signals, inferred preferences, mesh cache entries, and memory traces tagged `owner:<identity>`
 - `parse_preference_payload_json` / `parse_preference_payload_legacy`: two-pass trace parser (JSON primary, regex fallback)
 - 8 new specs: JSON payload roundtrip, legacy regex fallback, invalid payload handling, `derive_format` valid-value guard, `clear_preferences` trace deletion, and source-confidence hierarchy
 

@@ -186,6 +186,67 @@ RSpec.describe Legion::Extensions::Mesh::Helpers::PreferenceProfile do
     end
   end
 
+  describe '.erase_partner!' do
+    before do
+      described_class.clear_observations
+      described_class.clear_mesh_cache
+    end
+
+    it 'removes observation counts for the identity' do
+      5.times { described_class.update_from_observation(owner_id: 'partner-x', signals: { channel: :cli, direct_address: false }) }
+      described_class.erase_partner!(identity: 'partner-x')
+      expect(described_class.observation_counts['partner-x']).to be_nil
+    end
+
+    it 'removes inferred preferences for the identity' do
+      20.times { described_class.update_from_observation(owner_id: 'partner-x', signals: { channel: :cli, direct_address: false }) }
+      described_class.erase_partner!(identity: 'partner-x')
+      expect(described_class.inferred_preferences('partner-x')).to be_empty
+    end
+
+    it 'removes mesh cache entries for the identity' do
+      described_class.store_mesh_profile(
+        agent_id:        'partner-x',
+        profile:         { verbosity: :concise },
+        source_agent_id: 'partner-x'
+      )
+      described_class.erase_partner!(identity: 'partner-x')
+      expect(described_class.cached_mesh_profile(agent_id: 'partner-x')).to be_nil
+    end
+
+    it 'deletes memory traces tagged with the identity' do
+      trace = { trace_id: 'xyz-789', domain_tags: ['preference', 'owner:partner-x'], confidence: 0.8 }
+      runner_double = double('memory_runner')
+      allow(described_class).to receive(:memory_available?).and_return(true)
+      allow(described_class).to receive(:memory_runner).and_return(runner_double)
+      allow(runner_double).to receive(:retrieve_by_domain).and_return({ traces: [trace] })
+      allow(runner_double).to receive(:delete_trace).and_return({ deleted: true })
+
+      described_class.erase_partner!(identity: 'partner-x')
+
+      expect(runner_double).to have_received(:delete_trace).with(hash_including(trace_id: 'xyz-789'))
+    end
+
+    it 'leaves data for other identities untouched' do
+      3.times { described_class.update_from_observation(owner_id: 'partner-y', signals: { channel: :cli, direct_address: false }) }
+      described_class.store_mesh_profile(
+        agent_id:        'partner-y',
+        profile:         { verbosity: :detailed },
+        source_agent_id: 'partner-y'
+      )
+      described_class.erase_partner!(identity: 'partner-x')
+      expect(described_class.observation_counts['partner-y']).to eq(3)
+      expect(described_class.cached_mesh_profile(agent_id: 'partner-y')).not_to be_nil
+    end
+
+    it 'returns a result hash with erased identity and counts' do
+      result = described_class.erase_partner!(identity: 'partner-x')
+      expect(result).to be_a(Hash)
+      expect(result[:erased]).to be true
+      expect(result[:identity]).to eq('partner-x')
+    end
+  end
+
   describe '.store_mesh_profile' do
     it 'stores a profile with mesh_transfer origin' do
       result = described_class.store_mesh_profile(
